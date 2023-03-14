@@ -9,6 +9,7 @@
 #include "vtk.h"
 
 int verbose = 0;
+int print_time = 0;
 int no_output = 0;
 int output_freq = 100;
 int enable_checkpoints = 0;
@@ -24,6 +25,7 @@ static struct option long_options[] = {
 	{"output",     required_argument, 0, 'o'},
 	{"checkpoint", no_argument,       0, 'c'},	
     {"verbose",    no_argument,       0, 'v'},
+    {"print_time", no_argument,       0, 'p'},
     {"help",       no_argument,       0, 'h'},
 	{0, 0, 0, 0}
 };
@@ -47,6 +49,7 @@ void print_help(char *progname) {
 	fprintf(stderr, "  -o FILE, --output=FILE  Set base filename for output (final output will be in BASENAME.vtk\n");
 	fprintf(stderr, "  -c, --checkpoint        Enable checkpointing, checkpoints will be in BASENAME-ITERATION.vtk\n");
 	fprintf(stderr, "  -v, --verbose           Set verbose output\n");
+	fprintf(stderr, "  -p, --print_time        Set print_time output\n");
 	fprintf(stderr, "  -h, --help              Print this message and exit\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Report bugs to <steven.wright@york.ac.uk>\n");
@@ -91,6 +94,9 @@ void parse_args(int argc, char *argv[]) {
 				break;
 			case 'v':
 				verbose = 1;
+				break;
+			case 'p':
+                print_time = 1;
 				break;
 			case '?':
             case 'h':

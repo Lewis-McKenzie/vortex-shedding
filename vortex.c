@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <time.h>
 
 #include "data.h"
 #include "vtk.h"
@@ -12,6 +13,14 @@
 #include "boundary.h"
 #include "args.h"
 
+struct timespec timer;
+double get_time() {
+	clock_gettime(CLOCK_MONOTONIC, &timer); 
+	return (double) (timer.tv_sec + timer.tv_nsec / 1000000000.0);
+}
+
+#define time(func, timer) if(print_time){timer = get_time();func;timer = get_time() - timer;}else{func;}
+#define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
 /**
  * @brief Computation of tentative velocity field (f, g)
  * 
@@ -244,6 +253,9 @@ void set_timestep_interval() {
  * @return int The return value of the application
  */
 int main(int argc, char *argv[]) {
+    double setup_time, tv_time, rhs_time, p_time, v_time, boundary_time;
+
+    setup_time = get_time();
     set_defaults();
     parse_args(argc, argv);
     setup();
@@ -252,6 +264,7 @@ int main(int argc, char *argv[]) {
 
     allocate_arrays();
     problem_set_up();
+    setup_time = get_time() - setup_time;
 
     double res;
 
@@ -262,19 +275,27 @@ int main(int argc, char *argv[]) {
         if (!fixed_dt)
             set_timestep_interval();
 
-        compute_tentative_velocity();
+        time(compute_tentative_velocity(), tv_time);
 
-        compute_rhs();
+        time(compute_rhs(), rhs_time);
 
-        res = poisson();
+        time(res = poisson(), p_time);
 
-        update_velocity();
+        time(update_velocity(), v_time);
 
-        apply_boundary_conditions();
+        time(apply_boundary_conditions(), boundary_time);
 
         if ((iters % output_freq == 0)) {
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
- 
+            print_timer("compute_tentative_velocity", tv_time);
+            print_timer("compute_rhs", rhs_time);
+            print_timer("poisson", p_time);
+            print_timer("update_velocity", v_time);
+            print_timer("apply_boundary_conditions", boundary_time);
+            if(print_time)
+                printf("\n");
+
+
             if ((!no_output) && (enable_checkpoints))
                 write_checkpoint(iters, t+del_t);
         }

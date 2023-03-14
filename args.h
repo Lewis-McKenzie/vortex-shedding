@@ -2,6 +2,7 @@
 #define ARGS_H
 
 extern int verbose;
+extern int print_time;
 extern int no_output;
 extern int output_freq;
 extern int enable_checkpoints;

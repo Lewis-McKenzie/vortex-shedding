@@ -115,5 +115,5 @@ void problem_set_up() {
         }
     }
 
-	apply_boundary_conditions(u, v, flag, imax, jmax, ui, vi);
+	apply_boundary_conditions();
 }
