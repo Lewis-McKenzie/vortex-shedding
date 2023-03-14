@@ -20,6 +20,9 @@ void set_defaults() {
 void setup() {
 	delx = xlength/imax;
     dely = ylength/jmax;
+    rdx2 = 1.0 / (delx * delx);
+    rdy2 = 1.0 / (dely * dely);
+    beta_2 = -omega / (2.0 * (rdx2 + rdy2));
 }
  
 /**

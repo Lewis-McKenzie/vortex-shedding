@@ -96,7 +96,7 @@ void compute_rhs() {
                 /* only for fluid and non-surface cells */
                 rhs[i][j] = ((f[i][j] - f[i-1][j]) / delx + 
                              (g[i][j] - g[i][j-1]) / dely)
-                             / del_t;
+                            / del_t;
             }
         }
     }
@@ -110,9 +110,6 @@ void compute_rhs() {
  * 
  */
 double poisson() {
-    double rdx2 = 1.0 / (delx * delx);
-    double rdy2 = 1.0 / (dely * dely);
-    double beta_2 = -omega / (2.0 * (rdx2 + rdy2));
 
     double p0 = 0.0;
     /* Calculate sum of squares */
@@ -136,9 +133,9 @@ double poisson() {
                     if (flag[i][j] == (C_F | B_NSEW)) {
                         /* five point star for interior fluid cells */
                         p[i][j] = (1.0 - omega) * p[i][j] - 
-                              beta_2 * ((p[i+1][j] + p[i-1][j] ) *rdx2
-                                  + (p[i][j+1] + p[i][j-1]) * rdy2
-                                  - rhs[i][j]);
+                              beta_2 * ((p[i+1][j] + p[i-1][j] ) * rdx2
+                                         + (p[i][j+1] + p[i][j-1]) * rdy2
+                                         - rhs[i][j]);
                     } else if (flag[i][j] & C_F) { 
                         /* modified star near boundary */
 
@@ -150,8 +147,8 @@ double poisson() {
                         double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
                         p[i][j] = (1.0 - omega) * p[i][j] -
                             beta_mod * ((eps_E * p[i+1][j] + eps_W * p[i-1][j]) * rdx2
-                                + (eps_N * p[i][j+1] + eps_S * p[i][j-1]) * rdy2
-                                - rhs[i][j]);
+                                         + (eps_N * p[i][j+1] + eps_S * p[i][j-1]) * rdy2
+                                         - rhs[i][j]);
                     }
                 }
             }
@@ -170,7 +167,7 @@ double poisson() {
                     double add = (eps_E * (p[i+1][j] - p[i][j]) - 
                         eps_W * (p[i][j] - p[i-1][j])) * rdx2  +
                         (eps_N * (p[i][j+1] - p[i][j]) -
-                        eps_S * (p[i][j] - p[i][j-1])) * rdy2  -  rhs[i][j];
+                         eps_S * (p[i][j] - p[i][j-1])) * rdy2  -  rhs[i][j];
                     res += add * add;
                 }
             }
@@ -245,32 +242,12 @@ void set_timestep_interval() {
     }
 }
 
-/**
- * @brief The main routine that sets up the problem and executes the solving routines routines
- * 
- * @param argc The number of arguments passed to the program
- * @param argv An array of the arguments passed to the program
- * @return int The return value of the application
- */
-int main(int argc, char *argv[]) {
-    double setup_time, tv_time, rhs_time, p_time, v_time, boundary_time;
 
-    setup_time = get_time();
-    set_defaults();
-    parse_args(argc, argv);
-    setup();
-
-    if (verbose) print_opts();
-
-    allocate_arrays();
-    problem_set_up();
-    setup_time = get_time() - setup_time;
-
-    double res;
+void main_loop() {
+    double res, t, tv_time, rhs_time, p_time, v_time, boundary_time;
 
     /* Main loop */
     int iters = 0;
-    double t;
     for (t = 0.0; t < t_end; t += del_t, iters++) {
         if (!fixed_dt)
             set_timestep_interval();
@@ -306,9 +283,35 @@ int main(int argc, char *argv[]) {
 
     if (!no_output)
         write_result(iters, t);
+}
+
+
+/**
+ * @brief The main routine that sets up the problem and executes the solving routines routines
+ * 
+ * @param argc The number of arguments passed to the program
+ * @param argv An array of the arguments passed to the program
+ * @return int The return value of the application
+ */
+int main(int argc, char *argv[]) {
+    double setup_time, main_loop_time;
+
+    setup_time = get_time();
+    set_defaults();
+    parse_args(argc, argv);
+    setup();
+
+    if (verbose) print_opts();
+
+    allocate_arrays();
+    problem_set_up();
+    setup_time = get_time() - setup_time;
+    print_timer("Setup", setup_time);
+
+    time(main_loop(), main_loop_time);
+    print_timer("Main loop", main_loop_time);
 
     free_arrays();
 
     return 0;
 }
-

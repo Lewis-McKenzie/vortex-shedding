@@ -25,6 +25,8 @@ double ui = 1.0;           /* Initial X velocity */
 double vi = 0.0;           /* Initial Y velocity */
 
 double delx, dely;
+double rdx2, rdy2;
+double beta_2;
 
 int fluid_cells = 0;
 
