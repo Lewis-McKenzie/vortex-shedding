@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <math.h>
 #include <time.h>
+#include <omp.h>
 
 #include "data.h"
 #include "vtk.h"
@@ -26,6 +27,7 @@ double get_time() {
  * 
  */
 void compute_tentative_velocity() {
+    #pragma omp parallel for
     for (int i = 1; i < imax; i++) {
         for (int j = 1; j < jmax+1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -49,6 +51,8 @@ void compute_tentative_velocity() {
             }
         }
     }
+
+    #pragma omp parallel for
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -74,10 +78,12 @@ void compute_tentative_velocity() {
     }
 
     /* f & g at external boundaries */
+    //#pragma omp parallel for
     for (int j = 1; j < jmax+1; j++) {
         f[0][j]    = u[0][j];
         f[imax][j] = u[imax][j];
     }
+    #pragma omp parallel for
     for (int i = 1; i < imax+1; i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
@@ -90,6 +96,7 @@ void compute_tentative_velocity() {
  * 
  */
 void compute_rhs() {
+    #pragma omp parallel for
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1;j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
@@ -102,6 +109,66 @@ void compute_rhs() {
     }
 }
 
+void update_p() {
+    for (int rb = 0; rb < 2; rb++) {
+
+        #pragma omp parallel for
+        for (int i = 1; i < imax+1; i++) {
+            for (int j = 1; j < jmax+1; j++) {
+
+                if ((i + j) % 2 != rb) { continue; }
+
+                if (flag[i][j] == (C_F | B_NSEW)) {
+                    /* five point star for interior fluid cells */
+                    p[i][j] = (1.0 - omega) * p[i][j] - 
+                        beta_2 * ((p[i+1][j] + p[i-1][j] ) * rdx2
+                                    + (p[i][j+1] + p[i][j-1]) * rdy2
+                                    - rhs[i][j]);
+
+                } else if (flag[i][j] & C_F) { 
+                    /* modified star near boundary */
+
+                    double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
+                    double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
+                    double eps_N = ((flag[i][j+1] & C_F) ? 1.0 : 0.0);
+                    double eps_S = ((flag[i][j-1] & C_F) ? 1.0 : 0.0);
+
+                    double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
+                    p[i][j] = (1.0 - omega) * p[i][j] -
+                        beta_mod * ((eps_E * p[i+1][j] + eps_W * p[i-1][j]) * rdx2
+                                    + (eps_N * p[i][j+1] + eps_S * p[i][j-1]) * rdy2
+                                    - rhs[i][j]);
+                }
+            }
+        }
+    }  
+}
+
+/**
+ * @brief computation of residual
+*/
+double compute_res(double res) {
+    #pragma omp parallel for
+    for (int i = 1; i < imax+1; i++) {
+        for (int j = 1; j < jmax+1; j++) {
+            if (flag[i][j] & C_F) {
+                double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
+                double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
+                double eps_N = ((flag[i][j+1] & C_F) ? 1.0 : 0.0);
+                double eps_S = ((flag[i][j-1] & C_F) ? 1.0 : 0.0);
+
+                /* only fluid cells */
+                double add = (eps_E * (p[i+1][j] - p[i][j]) - 
+                    eps_W * (p[i][j] - p[i-1][j])) * rdx2  +
+                    (eps_N * (p[i][j+1] - p[i][j]) -
+                    eps_S * (p[i][j] - p[i][j-1])) * rdy2  -  rhs[i][j];
+                res += add * add;
+            }
+        }
+    }
+    return sqrt(res / fluid_cells);
+}
+
 
 /**
  * @brief Red/Black SOR to solve the poisson equation.
@@ -112,67 +179,26 @@ void compute_rhs() {
 double poisson() {
 
     double p0 = 0.0;
+    int iter;
+    double res = 0.0;
     /* Calculate sum of squares */
+    #pragma omp parallel for reduction(+:p0)
     for (int i = 1; i < imax+1; i++) {
+        #pragma omp parallel for reduction(+:p0)
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
         }
     }
-   
+
     p0 = sqrt(p0 / fluid_cells); 
     if (p0 < 0.0001) { p0 = 1.0; }
 
     /* Red/Black SOR-iteration */
-    int iter;
-    double res = 0.0;
     for (iter = 0; iter < itermax; iter++) {
-        for (int rb = 0; rb < 2; rb++) {
-            for (int i = 1; i < imax+1; i++) {
-                for (int j = 1; j < jmax+1; j++) {
-                    if ((i + j) % 2 != rb) { continue; }
-                    if (flag[i][j] == (C_F | B_NSEW)) {
-                        /* five point star for interior fluid cells */
-                        p[i][j] = (1.0 - omega) * p[i][j] - 
-                              beta_2 * ((p[i+1][j] + p[i-1][j] ) * rdx2
-                                         + (p[i][j+1] + p[i][j-1]) * rdy2
-                                         - rhs[i][j]);
-                    } else if (flag[i][j] & C_F) { 
-                        /* modified star near boundary */
 
-                        double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
-                        double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
-                        double eps_N = ((flag[i][j+1] & C_F) ? 1.0 : 0.0);
-                        double eps_S = ((flag[i][j-1] & C_F) ? 1.0 : 0.0);
-
-                        double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
-                        p[i][j] = (1.0 - omega) * p[i][j] -
-                            beta_mod * ((eps_E * p[i+1][j] + eps_W * p[i-1][j]) * rdx2
-                                         + (eps_N * p[i][j+1] + eps_S * p[i][j-1]) * rdy2
-                                         - rhs[i][j]);
-                    }
-                }
-            }
-        }
+        update_p();
         
-        /* computation of residual */
-        for (int i = 1; i < imax+1; i++) {
-            for (int j = 1; j < jmax+1; j++) {
-                if (flag[i][j] & C_F) {
-                    double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_N = ((flag[i][j+1] & C_F) ? 1.0 : 0.0);
-                    double eps_S = ((flag[i][j-1] & C_F) ? 1.0 : 0.0);
-
-                    /* only fluid cells */
-                    double add = (eps_E * (p[i+1][j] - p[i][j]) - 
-                        eps_W * (p[i][j] - p[i-1][j])) * rdx2  +
-                        (eps_N * (p[i][j+1] - p[i][j]) -
-                         eps_S * (p[i][j] - p[i][j-1])) * rdy2  -  rhs[i][j];
-                    res += add * add;
-                }
-            }
-        }
-        res = sqrt(res / fluid_cells) / p0;
+        res = compute_res(res) / p0;
         
         /* convergence? */
         if (res < eps) break;
@@ -186,7 +212,8 @@ double poisson() {
  * @brief Update the velocity values based on the tentative
  * velocity values and the new pressure matrix
  */
-void update_velocity() {   
+void update_velocity() {
+    #pragma omp parallel for
     for (int i = 1; i < imax-2; i++) {
         for (int j = 1; j < jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -196,6 +223,7 @@ void update_velocity() {
         }
     }
     
+    #pragma omp parallel for
     for (int i = 1; i < imax-1; i++) {
         for (int j = 1; j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -306,9 +334,9 @@ int main(int argc, char *argv[]) {
     allocate_arrays();
     problem_set_up();
     setup_time = get_time() - setup_time;
-    print_timer("Setup", setup_time);
 
     time(main_loop(), main_loop_time);
+    print_timer("Setup", setup_time);
     print_timer("Main loop", main_loop_time);
 
     free_arrays();
