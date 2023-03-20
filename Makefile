@@ -1,4 +1,4 @@
-CC=gcc
+CC=nvcc
 CFLAGS=-O3 
 LIBFLAGS=-lm
 
@@ -11,7 +11,7 @@ OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 
 all: directories vortex
 
-obj/%.o: %.c
+obj/%.o: %.cu
 	$(CC) -c -o $@ $< $(CFLAGS) 
 
 vortex: $(OBJ)

@@ -1,4 +1,5 @@
 obj
 out
-vortex*
+vortex
+vortex.out
 __pycache__
