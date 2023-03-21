@@ -3,3 +3,4 @@ out
 vortex
 vortex.out
 __pycache__
+.mypy_cache
