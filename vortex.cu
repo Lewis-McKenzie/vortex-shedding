@@ -102,7 +102,7 @@ void compute_rhs() {
     }
 }
 
-__global__ void update_p() {
+__global__ void update_p(int imax, int jmax, double omega, double beta_2, double rdx2, double rdy2) {
     for (int rb = 0; rb < 2; rb++) {
 
         for (int i = 1; i < imax+1; i++) {
@@ -110,25 +110,25 @@ __global__ void update_p() {
 
                 if ((i + j) % 2 != rb) { continue; }
 
-                if (flag[i][j] == (C_F | B_NSEW)) {
+                if (cuda_flag[i][j] == (C_F | B_NSEW)) {
                     /* five point star for interior fluid cells */
-                    p[i][j] = (1.0 - omega) * p[i][j] - 
-                            beta_2 * ((p[i+1][j] + p[i-1][j] ) * rdx2
-                                        + (p[i][j+1] + p[i][j-1]) * rdy2
-                                        - rhs[i][j]);
+                    cuda_p[i][j] = (1.0 - omega) * cuda_p[i][j] - 
+                            beta_2 * ((cuda_p[i+1][j] + cuda_p[i-1][j] ) * rdx2
+                                        + (cuda_p[i][j+1] + cuda_p[i][j-1]) * rdy2
+                                        - cuda_rhs[i][j]);
 
-                } else if (flag[i][j] & C_F) { 
+                } else if (cuda_flag[i][j] & C_F) { 
                     /* modified star near boundary */
-                    double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_N = ((flag[i][j+1] & C_F) ? 1.0 : 0.0);
-                    double eps_S = ((flag[i][j-1] & C_F) ? 1.0 : 0.0);
+                    double eps_E = ((cuda_flag[i+1][j] & C_F) ? 1.0 : 0.0);
+                    double eps_W = ((cuda_flag[i-1][j] & C_F) ? 1.0 : 0.0);
+                    double eps_N = ((cuda_flag[i][j+1] & C_F) ? 1.0 : 0.0);
+                    double eps_S = ((cuda_flag[i][j-1] & C_F) ? 1.0 : 0.0);
 
                     double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
-                    p[i][j] = (1.0 - omega) * p[i][j] -
-                        beta_mod * ((eps_E * p[i+1][j] + eps_W * p[i-1][j]) * rdx2
-                                        + (eps_N * p[i][j+1] + eps_S * p[i][j-1]) * rdy2
-                                        - rhs[i][j]);
+                    cuda_p[i][j] = (1.0 - omega) * cuda_p[i][j] -
+                        beta_mod * ((eps_E * cuda_p[i+1][j] + eps_W * cuda_p[i-1][j]) * rdx2
+                                        + (eps_N * cuda_p[i][j+1] + eps_S * cuda_p[i][j-1]) * rdy2
+                                        - cuda_rhs[i][j]);
                 }
             }
         }
@@ -142,13 +142,13 @@ __global__ void update_p() {
  * @return Calculated residual of the computation
  * 
  */
-double poisson() {
+__global__ double poisson(int imax, int jmax) {
 
     double p0 = 0.0;
     /* Calculate sum of squares */
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax+1; j++) {
-            if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
+            if (cuda_flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
         }
     }
    
@@ -161,16 +161,16 @@ double poisson() {
     for (iter = 0; iter < itermax; iter++) {
 
 
-        update_p<<<1, 1>>>();
+        update_p<<<1, 1>>>(imax, jmax, omega, beta_2, rdx2, rdy2);
         
         /* computation of residual */
         for (int i = 1; i < imax+1; i++) {
             for (int j = 1; j < jmax+1; j++) {
-                if (flag[i][j] & C_F) {
-                    double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_N = ((flag[i][j+1] & C_F) ? 1.0 : 0.0);
-                    double eps_S = ((flag[i][j-1] & C_F) ? 1.0 : 0.0);
+                if (cuda_flag[i][j] & C_F) {
+                    double eps_E = ((cuda_flag[i+1][j] & C_F) ? 1.0 : 0.0);
+                    double eps_W = ((cuda_flag[i-1][j] & C_F) ? 1.0 : 0.0);
+                    double eps_N = ((cuda_flag[i][j+1] & C_F) ? 1.0 : 0.0);
+                    double eps_S = ((cuda_flag[i][j-1] & C_F) ? 1.0 : 0.0);
 
                     /* only fluid cells */
                     double add = (eps_E * (p[i+1][j] - p[i][j]) - 
@@ -265,7 +265,7 @@ void main_loop() {
 
         time(compute_rhs(), rhs_time);
 
-        time(res = poisson(), p_time);
+        time((res = poisson<<<1, 1>>>(imax, jmax)), p_time);
 
         time(update_velocity(), v_time);
 
@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
     time(main_loop(), main_loop_time);
     print_timer("Main loop", main_loop_time);
 
-    free_arrays();
+    free_all();
 
     return 0;
 }

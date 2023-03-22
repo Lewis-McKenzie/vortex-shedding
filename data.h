@@ -44,7 +44,7 @@ extern double ** u;
 extern int v_size_x, v_size_y;
 extern double ** v;
 extern int p_size_x, p_size_y;
-extern double ** p; 
+extern double ** p;
 extern int rhs_size_x, rhs_size_y;
 extern double ** rhs; 
 extern int f_size_x, f_size_y;
@@ -54,8 +54,19 @@ extern double ** g;
 extern int flag_size_x, flag_size_y;
 extern char ** flag;
 
+extern __device__ double ** cuda_u;
+extern __device__ double ** cuda_v;
+extern __device__ double ** cuda_p;
+extern __device__ char ** cuda_flag;
+extern __device__ double ** cuda_rhs;
+
 double **alloc_2d_array(int m, int n);
 char **alloc_2d_char_array(int m, int n);
+double **alloc_2d_cuda_array(int m, int n);
+char **alloc_2d_char_cuda_array(int m, int n);
 void free_2d_array(void ** array);
+void free_2d_cuda_array(void ** array);
+void to_gpu_2d(void** array, void** cuda_array, int m, int size);
+void from_gpu_2d(void** array, void** cuda_array, int m, int size);
 
 #endif

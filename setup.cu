@@ -52,6 +52,14 @@ void allocate_arrays() {
     }
 }
 
+void allocate_cuda_arrays() {
+    cuda_u = alloc_2d_cuda_array(u_size_x, u_size_y);
+    cuda_v = alloc_2d_cuda_array(v_size_x, v_size_y);
+    cuda_p = alloc_2d_cuda_array(p_size_x, p_size_y);
+    cuda_flag = alloc_2d_char_cuda_array(flag_size_x, flag_size_y);
+    cuda_rhs = alloc_2d_cuda_array(rhs_size_x, rhs_size_y);
+}
+
 /**
  * @brief Free all of the arrays used for the computation.
  * 
@@ -65,6 +73,20 @@ void free_arrays() {
     free_2d_array((void**) rhs);
     free_2d_array((void**) flag);
 }
+
+void free_cuda_arrays() {
+    free_2d_cuda_array((void**) cuda_u);
+    free_2d_cuda_array((void**) cuda_v);
+    free_2d_cuda_array((void**) cuda_p);
+    free_2d_cuda_array((void**) cuda_flag);
+    free_2d_cuda_array((void**) cuda_rhs);
+}
+
+void free_all() {
+    free_arrays();
+    free_cuda_arrays();
+}
+
 
 /**
  * @brief Initialise the velocity arrays and then initialize the flag array, 
@@ -119,4 +141,9 @@ void problem_set_up() {
     }
 
 	apply_boundary_conditions();
+    to_gpu_2d((void**) u, (void**) cuda_u, u_size_x, sizeof(double) * u_size_y);
+    to_gpu_2d((void**) v, (void**) cuda_v, v_size_x, sizeof(double) * v_size_y);
+    to_gpu_2d((void**) p, (void**) cuda_p, p_size_x, sizeof(double) * p_size_y);
+    to_gpu_2d((void**) flag, (void**) cuda_flag, flag_size_x, sizeof(char) * flag_size_y);
+    to_gpu_2d((void**) rhs, (void**) cuda_rhs, rhs_size_x, sizeof(double) * rhs_size_y);
 }

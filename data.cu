@@ -6,6 +6,8 @@
 #include "vtk.h"
 #include "data.h"
 
+#define DATA_CU
+
 double xlength = 4.0;     /* Width of simulated domain */
 double ylength = 1.0;     /* Height of simulated domain */
 int imax = 512;           /* Number of cells horizontally */
@@ -33,18 +35,23 @@ int fluid_cells = 0;
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 int u_size_x, u_size_y;
 double ** u;
+__device__ double ** cuda_u;
 int v_size_x, v_size_y;
 double ** v;
+__device__ double ** cuda_v;
 int p_size_x, p_size_y;
-double ** p; 
+double ** p;
+__device__ double ** cuda_p; 
 int rhs_size_x, rhs_size_y;
-double ** rhs; 
+double ** rhs;
+__device__ double ** cuda_rhs;
 int f_size_x, f_size_y;
-double ** f; 
+double ** f;
 int g_size_x, g_size_y;
 double ** g;
 int flag_size_x, flag_size_y;
 char ** flag;
+__device__ char ** cuda_flag;
 
 /**
  * @brief Allocate a 2D array that is addressable using square brackets
@@ -65,6 +72,7 @@ double **alloc_2d_array(int m, int n) {
 }
 
 
+
 /**
  * @brief Allocate a 2D char array that is addressable using square brackets
  * 
@@ -83,6 +91,40 @@ char **alloc_2d_char_array(int m, int n) {
 	return x;
 }
 
+double **alloc_2d_cuda_array(int m, int n) {
+  	double **x;
+  	int i;
+
+  	cudaMalloc((void**) x, m*sizeof(double *));
+  	cudaMalloc((void**) x[0], m*n*sizeof(double));
+  	for ( i = 1; i < m; i++ )
+    	x[i] = &x[0][i*n];
+	return x;
+}
+
+char **alloc_2d_char_cuda_array(int m, int n) {
+  	char **x;
+  	int i;
+
+  	cudaMalloc((void**) x, m*sizeof(char *));
+  	cudaMalloc((void**) x[0], m*n*sizeof(char));
+  	for ( i = 1; i < m; i++ )
+    	x[i] = &x[0][i*n];
+	return x;
+}
+
+void to_gpu_2d(void** array, void** cuda_array, int m, int size) {
+	for (int i = 0; i < m; i++) {
+		cudaMemcpy(cuda_array[i], array[i], size, cudaMemcpyHostToDevice);
+	}
+}
+
+void from_gpu_2d(void** array, void** cuda_array, int m, int size) {
+	for (int i = 0; i < m; i++) {
+		cudaMemcpy(array[i], cuda_array[i], size, cudaMemcpyDeviceToHost);
+	}
+}
+
 /**
  * @brief Free a 2D array
  * 
@@ -91,4 +133,9 @@ char **alloc_2d_char_array(int m, int n) {
 void free_2d_array(void ** array) {
 	free(array[0]);
 	free(array);
+}
+
+void free_2d_cuda_array(void ** array) {
+	cudaFree(array[0]);
+	cudaFree(array);
 }
