@@ -53,11 +53,13 @@ void allocate_arrays() {
 }
 
 void allocate_cuda_arrays() {
-    cuda_u = alloc_2d_cuda_array(u_size_x, u_size_y);
-    cuda_v = alloc_2d_cuda_array(v_size_x, v_size_y);
-    cuda_p = alloc_2d_cuda_array(p_size_x, p_size_y);
-    cuda_flag = alloc_2d_char_cuda_array(flag_size_x, flag_size_y);
-    cuda_rhs = alloc_2d_cuda_array(rhs_size_x, rhs_size_y);
+    size_t u_pitch = alloc_2d_cuda_array(cuda_u, u_size_x, u_size_y);
+    size_t v_pitch = alloc_2d_cuda_array(cuda_v, v_size_x, v_size_y);
+    size_t p_pitch = alloc_2d_cuda_array(cuda_p, p_size_x, p_size_y);
+    size_t flag_pitch = alloc_2d_char_cuda_array(cuda_flag, flag_size_x, flag_size_y);
+    size_t rhs_pitch = alloc_2d_cuda_array(cuda_rhs, rhs_size_x, rhs_size_y);
+    size_t g_pitch = alloc_2d_cuda_array(cuda_g, g_size_x, g_size_y);
+    size_t f_pitch = alloc_2d_cuda_array(cuda_f, f_size_x, f_size_y);
 }
 
 /**
@@ -80,11 +82,23 @@ void free_cuda_arrays() {
     free_2d_cuda_array((void**) cuda_p);
     free_2d_cuda_array((void**) cuda_flag);
     free_2d_cuda_array((void**) cuda_rhs);
+    free_2d_cuda_array((void**) cuda_f);
+    free_2d_cuda_array((void**) cuda_g);
 }
 
 void free_all() {
     free_arrays();
     free_cuda_arrays();
+}
+
+void get_data() {
+    from_gpu_2d((void**) u, (void**) cuda_u, u_size_x, sizeof(double) * u_size_y);
+    from_gpu_2d((void**) v, (void**) cuda_v, v_size_x, sizeof(double) * v_size_y);
+    from_gpu_2d((void**) p, (void**) cuda_p, p_size_x, sizeof(double) * p_size_y);
+    from_gpu_2d((void**) flag, (void**) cuda_flag, flag_size_x, sizeof(char) * flag_size_y);
+    from_gpu_2d((void**) rhs, (void**) cuda_rhs, rhs_size_x, sizeof(double) * rhs_size_y);
+    from_gpu_2d((void**) g, (void**) cuda_g, g_size_x, sizeof(double) * g_size_y);
+    from_gpu_2d((void**) f, (void**) cuda_f, f_size_x, sizeof(double) * f_size_y);
 }
 
 
@@ -140,10 +154,12 @@ void problem_set_up() {
         }
     }
 
-	apply_boundary_conditions();
+	apply_boundary_conditions<<<1, 1>>>(imax, jmax, ui, vi);
     to_gpu_2d((void**) u, (void**) cuda_u, u_size_x, sizeof(double) * u_size_y);
     to_gpu_2d((void**) v, (void**) cuda_v, v_size_x, sizeof(double) * v_size_y);
     to_gpu_2d((void**) p, (void**) cuda_p, p_size_x, sizeof(double) * p_size_y);
     to_gpu_2d((void**) flag, (void**) cuda_flag, flag_size_x, sizeof(char) * flag_size_y);
     to_gpu_2d((void**) rhs, (void**) cuda_rhs, rhs_size_x, sizeof(double) * rhs_size_y);
+    to_gpu_2d((void**) g, (void**) cuda_g, g_size_x, sizeof(double) * g_size_y);
+    to_gpu_2d((void**) f, (void**) cuda_f, f_size_x, sizeof(double) * f_size_y);
 }

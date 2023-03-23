@@ -4,3 +4,4 @@ vortex
 vortex.exe
 __pycache__
 .mypy_cache
+.vscode

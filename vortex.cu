@@ -25,62 +25,62 @@ double get_time() {
  * @brief Computation of tentative velocity field (f, g)
  * 
  */
-void compute_tentative_velocity() {
+__global__ void compute_tentative_velocity(int imax, int jmax, double delx, double dely, double del_t, double Re, double y) {
     for (int i = 1; i < imax; i++) {
         for (int j = 1; j < jmax+1; j++) {
             /* only if both adjacent cells are fluid cells */
-            if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
-                double du2dx = ((u[i][j] + u[i+1][j]) * (u[i][j] + u[i+1][j]) +
-                                y * fabs(u[i][j] + u[i+1][j]) * (u[i][j] - u[i+1][j]) -
-                                (u[i-1][j] + u[i][j]) * (u[i-1][j] + u[i][j]) -
-                                y * fabs(u[i-1][j] + u[i][j]) * (u[i-1][j]-u[i][j]))
+            if ((cuda_flag[i][j] & C_F) && (cuda_flag[i+1][j] & C_F)) {
+                double du2dx = ((cuda_u[i][j] + cuda_u[i+1][j]) * (cuda_u[i][j] + cuda_u[i+1][j]) +
+                                y * fabs(cuda_u[i][j] + cuda_u[i+1][j]) * (cuda_u[i][j] - cuda_u[i+1][j]) -
+                                (cuda_u[i-1][j] + cuda_u[i][j]) * (cuda_u[i-1][j] + cuda_u[i][j]) -
+                                y * fabs(cuda_u[i-1][j] + cuda_u[i][j]) * (cuda_u[i-1][j] - cuda_u[i][j]))
                                 / (4.0 * delx);
-                double duvdy = ((v[i][j] + v[i+1][j]) * (u[i][j] + u[i][j+1]) +
-                                y * fabs(v[i][j] + v[i+1][j]) * (u[i][j] - u[i][j+1]) -
-                                (v[i][j-1] + v[i+1][j-1]) * (u[i][j-1] + u[i][j]) -
-                                y * fabs(v[i][j-1] + v[i+1][j-1]) * (u[i][j-1] - u[i][j]))
+                double duvdy = ((cuda_v[i][j] + cuda_v[i+1][j]) * (cuda_u[i][j] + cuda_u[i][j+1]) +
+                                y * fabs(cuda_v[i][j] + cuda_v[i+1][j]) * (cuda_u[i][j] - cuda_u[i][j+1]) -
+                                (cuda_v[i][j-1] + cuda_v[i+1][j-1]) * (cuda_u[i][j-1] + cuda_u[i][j]) -
+                                y * fabs(cuda_v[i][j-1] + cuda_v[i+1][j-1]) * (cuda_u[i][j-1] - cuda_u[i][j]))
                                 / (4.0 * dely);
-                double laplu = (u[i+1][j] - 2.0 * u[i][j] + u[i-1][j]) / delx / delx +
-                                (u[i][j+1] - 2.0 * u[i][j] + u[i][j-1]) / dely / dely;
+                double laplu = (cuda_u[i+1][j] - 2.0 * cuda_u[i][j] + cuda_u[i-1][j]) / delx / delx +
+                                (cuda_u[i][j+1] - 2.0 * cuda_u[i][j] + cuda_u[i][j-1]) / dely / dely;
    
-                f[i][j] = u[i][j] + del_t * (laplu / Re - du2dx - duvdy);
+                cuda_f[i][j] = cuda_u[i][j] + del_t * (laplu / Re - du2dx - duvdy);
             } else {
-                f[i][j] = u[i][j];
+                cuda_f[i][j] = cuda_u[i][j];
             }
         }
     }
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax; j++) {
             /* only if both adjacent cells are fluid cells */
-            if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
-                double duvdx = ((u[i][j] + u[i][j+1]) * (v[i][j] + v[i+1][j]) +
-                                y * fabs(u[i][j] + u[i][j+1]) * (v[i][j] - v[i+1][j]) -
-                                (u[i-1][j] + u[i-1][j+1]) * (v[i-1][j] + v[i][j]) -
-                                y * fabs(u[i-1][j] + u[i-1][j+1]) * (v[i-1][j]-v[i][j]))
+            if ((cuda_flag[i][j] & C_F) && (cuda_flag[i][j+1] & C_F)) {
+                double duvdx = ((cuda_u[i][j] + cuda_u[i][j+1]) * (cuda_v[i][j] + cuda_v[i+1][j]) +
+                                y * fabs(cuda_u[i][j] + cuda_u[i][j+1]) * (cuda_v[i][j] - cuda_v[i+1][j]) -
+                                (cuda_u[i-1][j] + cuda_u[i-1][j+1]) * (cuda_v[i-1][j] + cuda_v[i][j]) -
+                                y * fabs(cuda_u[i-1][j] + cuda_u[i-1][j+1]) * (cuda_v[i-1][j] - cuda_v[i][j]))
                                 / (4.0 * delx);
-                double dv2dy = ((v[i][j] + v[i][j+1]) * (v[i][j] + v[i][j+1]) +
-                                y * fabs(v[i][j] + v[i][j+1]) * (v[i][j] - v[i][j+1]) -
-                                (v[i][j-1] + v[i][j]) * (v[i][j-1] + v[i][j]) -
-                                y * fabs(v[i][j-1] + v[i][j]) * (v[i][j-1] - v[i][j]))
+                double dv2dy = ((cuda_v[i][j] + cuda_v[i][j+1]) * (cuda_v[i][j] + cuda_v[i][j+1]) +
+                                y * fabs(cuda_v[i][j] + cuda_v[i][j+1]) * (cuda_v[i][j] - cuda_v[i][j+1]) -
+                                (cuda_v[i][j-1] + cuda_v[i][j]) * (cuda_v[i][j-1] + cuda_v[i][j]) -
+                                y * fabs(cuda_v[i][j-1] + cuda_v[i][j]) * (cuda_v[i][j-1] - cuda_v[i][j]))
                                 / (4.0 * dely);
-                double laplv = (v[i+1][j] - 2.0 * v[i][j] + v[i-1][j]) / delx / delx +
-                                (v[i][j+1] - 2.0 * v[i][j] + v[i][j-1]) / dely / dely;
+                double laplv = (cuda_v[i+1][j] - 2.0 * cuda_v[i][j] + cuda_v[i-1][j]) / delx / delx +
+                                (cuda_v[i][j+1] - 2.0 * cuda_v[i][j] + cuda_v[i][j-1]) / dely / dely;
 
-                g[i][j] = v[i][j] + del_t * (laplv / Re - duvdx - dv2dy);
+                cuda_g[i][j] = cuda_v[i][j] + del_t * (laplv / Re - duvdx - dv2dy);
             } else {
-                g[i][j] = v[i][j];
+                cuda_g[i][j] = cuda_v[i][j];
             }
         }
     }
 
     /* f & g at external boundaries */
     for (int j = 1; j < jmax+1; j++) {
-        f[0][j]    = u[0][j];
-        f[imax][j] = u[imax][j];
+        cuda_f[0][j]    = cuda_u[0][j];
+        cuda_f[imax][j] = cuda_u[imax][j];
     }
     for (int i = 1; i < imax+1; i++) {
-        g[i][0]    = v[i][0];
-        g[i][jmax] = v[i][jmax];
+        cuda_g[i][0]    = cuda_v[i][0];
+        cuda_g[i][jmax] = cuda_v[i][jmax];
     }
 }
 
@@ -89,52 +89,18 @@ void compute_tentative_velocity() {
  * @brief Calculate the right hand side of the pressure equation 
  * 
  */
-void compute_rhs() {
+__global__ void compute_rhs(int imax, int jmax, int delx, double dely, double del_t) {
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1;j < jmax+1; j++) {
-            if (flag[i][j] & C_F) {
+            if (cuda_flag[i][j] & C_F) {
                 /* only for fluid and non-surface cells */
-                rhs[i][j] = ((f[i][j] - f[i-1][j]) / delx + 
-                             (g[i][j] - g[i][j-1]) / dely)
+                cuda_rhs[i][j] = ((cuda_f[i][j] - cuda_f[i-1][j]) / delx + 
+                             (cuda_g[i][j] - cuda_g[i][j-1]) / dely)
                             / del_t;
             }
         }
     }
 }
-
-__global__ void update_p(int imax, int jmax, double omega, double beta_2, double rdx2, double rdy2) {
-    for (int rb = 0; rb < 2; rb++) {
-
-        for (int i = 1; i < imax+1; i++) {
-            for (int j = 1; j < jmax+1; j++) {
-
-                if ((i + j) % 2 != rb) { continue; }
-
-                if (cuda_flag[i][j] == (C_F | B_NSEW)) {
-                    /* five point star for interior fluid cells */
-                    cuda_p[i][j] = (1.0 - omega) * cuda_p[i][j] - 
-                            beta_2 * ((cuda_p[i+1][j] + cuda_p[i-1][j] ) * rdx2
-                                        + (cuda_p[i][j+1] + cuda_p[i][j-1]) * rdy2
-                                        - cuda_rhs[i][j]);
-
-                } else if (cuda_flag[i][j] & C_F) { 
-                    /* modified star near boundary */
-                    double eps_E = ((cuda_flag[i+1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_W = ((cuda_flag[i-1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_N = ((cuda_flag[i][j+1] & C_F) ? 1.0 : 0.0);
-                    double eps_S = ((cuda_flag[i][j-1] & C_F) ? 1.0 : 0.0);
-
-                    double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
-                    cuda_p[i][j] = (1.0 - omega) * cuda_p[i][j] -
-                        beta_mod * ((eps_E * cuda_p[i+1][j] + eps_W * cuda_p[i-1][j]) * rdx2
-                                        + (eps_N * cuda_p[i][j+1] + eps_S * cuda_p[i][j-1]) * rdy2
-                                        - cuda_rhs[i][j]);
-                }
-            }
-        }
-    }
-}
-
 
 /**
  * @brief Red/Black SOR to solve the poisson equation.
@@ -142,13 +108,13 @@ __global__ void update_p(int imax, int jmax, double omega, double beta_2, double
  * @return Calculated residual of the computation
  * 
  */
-__global__ double poisson(int imax, int jmax) {
+__global__ void poisson(int itermax, int imax, int jmax, double rdx2, double rdy2, int fluid_cells, double eps, double beta_2, double omega) {
 
     double p0 = 0.0;
     /* Calculate sum of squares */
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax+1; j++) {
-            if (cuda_flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
+            if (cuda_flag[i][j] & C_F) { p0 += cuda_p[i][j] * cuda_p[i][j]; }
         }
     }
    
@@ -161,7 +127,36 @@ __global__ double poisson(int imax, int jmax) {
     for (iter = 0; iter < itermax; iter++) {
 
 
-        update_p<<<1, 1>>>(imax, jmax, omega, beta_2, rdx2, rdy2);
+        for (int rb = 0; rb < 2; rb++) {
+
+            for (int i = 1; i < imax+1; i++) {
+                for (int j = 1; j < jmax+1; j++) {
+
+                    if ((i + j) % 2 != rb) { continue; }
+
+                    if (cuda_flag[i][j] == (C_F | B_NSEW)) {
+                        /* five point star for interior fluid cells */
+                        cuda_p[i][j] = (1.0 - omega) * cuda_p[i][j] - 
+                                beta_2 * ((cuda_p[i+1][j] + cuda_p[i-1][j] ) * rdx2
+                                            + (cuda_p[i][j+1] + cuda_p[i][j-1]) * rdy2
+                                            - cuda_rhs[i][j]);
+
+                    } else if (cuda_flag[i][j] & C_F) { 
+                        /* modified star near boundary */
+                        double eps_E = ((cuda_flag[i+1][j] & C_F) ? 1.0 : 0.0);
+                        double eps_W = ((cuda_flag[i-1][j] & C_F) ? 1.0 : 0.0);
+                        double eps_N = ((cuda_flag[i][j+1] & C_F) ? 1.0 : 0.0);
+                        double eps_S = ((cuda_flag[i][j-1] & C_F) ? 1.0 : 0.0);
+
+                        double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
+                        cuda_p[i][j] = (1.0 - omega) * cuda_p[i][j] -
+                            beta_mod * ((eps_E * cuda_p[i+1][j] + eps_W * cuda_p[i-1][j]) * rdx2
+                                            + (eps_N * cuda_p[i][j+1] + eps_S * cuda_p[i][j-1]) * rdy2
+                                            - cuda_rhs[i][j]);
+                    }
+                }
+            }
+        }
         
         /* computation of residual */
         for (int i = 1; i < imax+1; i++) {
@@ -173,10 +168,10 @@ __global__ double poisson(int imax, int jmax) {
                     double eps_S = ((cuda_flag[i][j-1] & C_F) ? 1.0 : 0.0);
 
                     /* only fluid cells */
-                    double add = (eps_E * (p[i+1][j] - p[i][j]) - 
-                        eps_W * (p[i][j] - p[i-1][j])) * rdx2  +
-                        (eps_N * (p[i][j+1] - p[i][j]) -
-                         eps_S * (p[i][j] - p[i][j-1])) * rdy2  -  rhs[i][j];
+                    double add = (eps_E * (cuda_p[i+1][j] - cuda_p[i][j]) - 
+                        eps_W * (cuda_p[i][j] - cuda_p[i-1][j])) * rdx2  +
+                        (eps_N * (cuda_p[i][j+1] - cuda_p[i][j]) -
+                         eps_S * (cuda_p[i][j] - cuda_p[i][j-1])) * rdy2  -  cuda_rhs[i][j];
                     res += add * add;
                 }
             }
@@ -186,8 +181,6 @@ __global__ double poisson(int imax, int jmax) {
         /* convergence? */
         if (res < eps) break;
     }
-
-    return res;
 }
 
 
@@ -195,12 +188,12 @@ __global__ double poisson(int imax, int jmax) {
  * @brief Update the velocity values based on the tentative
  * velocity values and the new pressure matrix
  */
-void update_velocity() {   
+__global__ void update_velocity(int imax, int jmax, double delx, double dely, double del_t) {   
     for (int i = 1; i < imax-2; i++) {
         for (int j = 1; j < jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
-            if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
-                u[i][j] = f[i][j] - (p[i+1][j] - p[i][j]) * del_t / delx;
+            if ((cuda_flag[i][j] & C_F) && (cuda_flag[i+1][j] & C_F)) {
+                cuda_u[i][j] = cuda_f[i][j] - (cuda_p[i+1][j] - cuda_p[i][j]) * del_t / delx;
             }
         }
     }
@@ -208,8 +201,8 @@ void update_velocity() {
     for (int i = 1; i < imax-1; i++) {
         for (int j = 1; j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */
-            if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
-                v[i][j] = g[i][j] - (p[i][j+1] - p[i][j]) * del_t / dely;
+            if ((cuda_flag[i][j] & C_F) && (cuda_flag[i][j+1] & C_F)) {
+                cuda_v[i][j] = cuda_g[i][j] - (cuda_p[i][j+1] - cuda_p[i][j]) * del_t / dely;
             }
         }
     }
@@ -251,9 +244,15 @@ void set_timestep_interval() {
     }
 }
 
+__global__ void hello() {
+    printf("hello\n");
+}
 
 void main_loop() {
     double res, t, tv_time, rhs_time, p_time, v_time, boundary_time;
+
+    hello<<<1, 1>>>();
+    return;
 
     /* Main loop */
     int iters = 0;
@@ -261,15 +260,20 @@ void main_loop() {
         if (!fixed_dt)
             set_timestep_interval();
 
-        time(compute_tentative_velocity(), tv_time);
+        compute_tentative_velocity<<<1, 1>>>(imax, jmax, delx, dely, del_t, Re, y);
+        cudaDeviceSynchronize();
 
-        time(compute_rhs(), rhs_time);
+        compute_rhs<<<1, 1>>>(imax, jmax, delx, dely, del_t);
+        cudaDeviceSynchronize();
 
-        time((res = poisson<<<1, 1>>>(imax, jmax)), p_time);
+        poisson<<<1, 1>>>(itermax, imax, jmax, rdx2, rdy2, fluid_cells, eps, beta_2, omega);
+        cudaDeviceSynchronize();
 
-        time(update_velocity(), v_time);
+        update_velocity<<<1, 1>>>(imax, jmax, delx, dely, del_t);
+        cudaDeviceSynchronize();
 
-        time(apply_boundary_conditions(), boundary_time);
+        apply_boundary_conditions<<<1, 1>>>(imax, jmax, ui, vi);
+        cudaDeviceSynchronize();
 
         if ((iters % output_freq == 0)) {
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
@@ -287,6 +291,7 @@ void main_loop() {
         }
     } /* End of main loop */
 
+    get_data();
     printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
     printf("Simulation complete.\n");
 
@@ -313,6 +318,7 @@ int main(int argc, char *argv[]) {
     if (verbose) print_opts();
 
     allocate_arrays();
+    allocate_cuda_arrays();
     problem_set_up();
     setup_time = get_time() - setup_time;
     print_timer("Setup", setup_time);

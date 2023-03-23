@@ -6,7 +6,6 @@
 #include "vtk.h"
 #include "data.h"
 
-#define DATA_CU
 
 double xlength = 4.0;     /* Width of simulated domain */
 double ylength = 1.0;     /* Height of simulated domain */
@@ -47,8 +46,10 @@ double ** rhs;
 __device__ double ** cuda_rhs;
 int f_size_x, f_size_y;
 double ** f;
+__device__ double ** cuda_f;
 int g_size_x, g_size_y;
 double ** g;
+__device__ double ** cuda_g;
 int flag_size_x, flag_size_y;
 char ** flag;
 __device__ char ** cuda_flag;
@@ -91,38 +92,27 @@ char **alloc_2d_char_array(int m, int n) {
 	return x;
 }
 
-double **alloc_2d_cuda_array(int m, int n) {
-  	double **x;
-  	int i;
+size_t alloc_2d_cuda_array(double** array, int m, int n) {
+	size_t pitch;
 
-  	cudaMalloc((void**) x, m*sizeof(double *));
-  	cudaMalloc((void**) x[0], m*n*sizeof(double));
-  	for ( i = 1; i < m; i++ )
-    	x[i] = &x[0][i*n];
-	return x;
+	cudaMallocPitch((void**) array, &pitch, n*sizeof(double), m);
+	return pitch;
 }
 
-char **alloc_2d_char_cuda_array(int m, int n) {
-  	char **x;
-  	int i;
+size_t alloc_2d_char_cuda_array(char** array, int m, int n) {
+	size_t pitch;
 
-  	cudaMalloc((void**) x, m*sizeof(char *));
-  	cudaMalloc((void**) x[0], m*n*sizeof(char));
-  	for ( i = 1; i < m; i++ )
-    	x[i] = &x[0][i*n];
-	return x;
+	cudaMallocPitch((void**) array, &pitch, n*sizeof(char), m);
+	return pitch;
 }
+
 
 void to_gpu_2d(void** array, void** cuda_array, int m, int size) {
-	for (int i = 0; i < m; i++) {
-		cudaMemcpy(cuda_array[i], array[i], size, cudaMemcpyHostToDevice);
-	}
+	cudaMemcpy2D(cuda_array, size, array, size, size, m, cudaMemcpyHostToDevice);
 }
 
 void from_gpu_2d(void** array, void** cuda_array, int m, int size) {
-	for (int i = 0; i < m; i++) {
-		cudaMemcpy(array[i], cuda_array[i], size, cudaMemcpyDeviceToHost);
-	}
+	cudaMemcpy2D(array, size, cuda_array, size, size, m, cudaMemcpyDeviceToHost);
 }
 
 /**
@@ -136,6 +126,5 @@ void free_2d_array(void ** array) {
 }
 
 void free_2d_cuda_array(void ** array) {
-	cudaFree(array[0]);
 	cudaFree(array);
 }
