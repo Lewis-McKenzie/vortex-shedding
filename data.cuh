@@ -68,10 +68,12 @@ double *alloc_2d_cuda_array(int m, int n);
 char *alloc_2d_char_cuda_array(int m, int n);
 void free_2d_array(void ** array);
 void free_2d_cuda_array(void *array);
-void to_gpu_2d(void* array, void* cuda_array, int m, int size);
-void from_gpu_2d(void* array, void* cuda_array, int m, int size);
+
+void to_gpu_2d(void** array, void* cuda_array, int m, int n, int size);
+void from_gpu_2d(void** array, void* cuda_array, int m, int n, int size);
 cudaError_t checkCuda(cudaError_t result);
-int at(int i, int j);
 void test();
+
+#define at(i, j) (i * (imax+2) + j)
 
 #endif

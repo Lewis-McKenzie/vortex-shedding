@@ -93,13 +93,13 @@ void free_all() {
 }
 
 void get_data() {
-    from_gpu_2d((void**) u, (void**) cuda_u, u_size_x, sizeof(double) * u_size_y);
-    from_gpu_2d((void**) v, (void**) cuda_v, v_size_x, sizeof(double) * v_size_y);
-    from_gpu_2d((void**) p, (void**) cuda_p, p_size_x, sizeof(double) * p_size_y);
-    from_gpu_2d((void**) flag, (void**) cuda_flag, flag_size_x, sizeof(char) * flag_size_y);
-    from_gpu_2d((void**) rhs, (void**) cuda_rhs, rhs_size_x, sizeof(double) * rhs_size_y);
-    from_gpu_2d((void**) g, (void**) cuda_g, g_size_x, sizeof(double) * g_size_y);
-    from_gpu_2d((void**) f, (void**) cuda_f, f_size_x, sizeof(double) * f_size_y);
+    from_gpu_2d((void**) u, cuda_u, u_size_x, u_size_y, sizeof(double));
+    from_gpu_2d((void**) v, cuda_v, v_size_x, v_size_y, sizeof(double));
+    from_gpu_2d((void**) p, cuda_p, p_size_x, p_size_y, sizeof(double));
+    from_gpu_2d((void**) flag, cuda_flag, flag_size_x, flag_size_y, sizeof(char));
+    from_gpu_2d((void**) rhs, cuda_rhs, rhs_size_x, rhs_size_y, sizeof(double));
+    from_gpu_2d((void**) g, cuda_g, g_size_x, g_size_y, sizeof(double));
+    from_gpu_2d((void**) f, cuda_f, f_size_x, f_size_y, sizeof(double));
 }
 
 
@@ -154,13 +154,14 @@ void problem_set_up() {
             }
         }
     }
-    to_gpu_2d(u, cuda_u, u_size_x, sizeof(double) * u_size_y);
-    to_gpu_2d(v, cuda_v, v_size_x, sizeof(double) * v_size_y);
-    to_gpu_2d(p, cuda_p, p_size_x, sizeof(double) * p_size_y);
-    to_gpu_2d(flag, cuda_flag, flag_size_x, sizeof(char) * flag_size_y);
-    to_gpu_2d(rhs, cuda_rhs, rhs_size_x, sizeof(double) * rhs_size_y);
-    to_gpu_2d(g, cuda_g, g_size_x, sizeof(double) * g_size_y);
-    to_gpu_2d(f, cuda_f, f_size_x, sizeof(double) * f_size_y);
-	apply_boundary_conditions<<<1, 1>>>(imax, jmax, ui, vi);
+    to_gpu_2d((void**) u, cuda_u, u_size_x, u_size_y, sizeof(double));
+    to_gpu_2d((void**) v, cuda_v, v_size_x, v_size_y, sizeof(double));
+    to_gpu_2d((void**) p, cuda_p, p_size_x, p_size_y, sizeof(double));
+    to_gpu_2d((void**) flag, cuda_flag, flag_size_x, flag_size_y, sizeof(char));
+    to_gpu_2d((void**) rhs, cuda_rhs, rhs_size_x, rhs_size_y, sizeof(double));
+    to_gpu_2d((void**) g, cuda_g, g_size_x, g_size_y, sizeof(double));
+    to_gpu_2d((void**) f, cuda_f, f_size_x, f_size_y, sizeof(double));
+    test();
     cudaDeviceSynchronize();
+	apply_boundary_conditions<<<1, 1>>>(imax, jmax, ui, vi);
 }

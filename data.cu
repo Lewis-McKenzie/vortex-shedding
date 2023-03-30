@@ -14,9 +14,6 @@ cudaError_t checkCuda(cudaError_t result) {
     return result;
 }
 
-int at(int i, int j) {
-	return i * (imax+2) + j;
-}
 
 __global__ void hello() {
     printf("hello\n");
@@ -116,7 +113,7 @@ double* alloc_2d_cuda_array(int m, int n) {
 	size_t pitch;
 	double* d_array;
 
-	checkCuda(cudaMallocPitch(&d_array, &pitch, n*sizeof(double), m));
+	checkCuda(cudaMalloc((void **)&d_array, sizeof(double) * m * n));
 	return d_array;
 }
 
@@ -124,17 +121,19 @@ char* alloc_2d_char_cuda_array(int m, int n) {
 	size_t pitch;
 	char* d_array;
 
-	checkCuda(cudaMallocPitch(&d_array, &pitch, n*sizeof(char), m));
+	checkCuda(cudaMalloc((void **)&d_array, sizeof(char) * m * n));
 	return d_array;
 }
 
 
-void to_gpu_2d(void* array, void* cuda_array, int m, int size) {
-	checkCuda(cudaMemcpy2D(cuda_array, size, array, size, size, m, cudaMemcpyHostToDevice));
+void to_gpu_2d(void** array, void* cuda_array, int m, int n, int size) {
+
+	//checkCuda(cudaMemcpy2D(cuda_array, size, array, size, size, m, cudaMemcpyHostToDevice));
+	checkCuda(cudaMemcpy(cuda_array, array[0], size * m * n, cudaMemcpyHostToDevice));
 }
 
-void from_gpu_2d(void* array, void* cuda_array, int m, int size) {
-	checkCuda(cudaMemcpy2D(array, size, cuda_array, size, size, m, cudaMemcpyDeviceToHost));
+void from_gpu_2d(void** array, void* cuda_array, int m, int n, int size) {
+	checkCuda(cudaMemcpy(array[0], cuda_array, size * m * n, cudaMemcpyDeviceToHost));
 }
 
 /**
