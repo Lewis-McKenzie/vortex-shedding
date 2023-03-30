@@ -4,9 +4,9 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#include "args.h"
-#include "data.h"
-#include "vtk.h"
+#include "args.cuh"
+#include "data.cuh"
+#include "vtk.cuh"
 
 int verbose = 0;
 int print_time = 0;

@@ -2,10 +2,30 @@
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
+#include <assert.h>
 
-#include "vtk.h"
-#include "data.h"
+#include "vtk.cuh"
 
+cudaError_t checkCuda(cudaError_t result) {
+    if (result != cudaSuccess) {
+        fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
+        assert(result == cudaSuccess);
+    }
+    return result;
+}
+
+int at(int i, int j) {
+	return i * (imax+2) + j;
+}
+
+__global__ void hello() {
+    printf("hello\n");
+}
+
+void test() {
+	hello<<<1, 1>>>();
+    cudaDeviceSynchronize();
+}
 
 double xlength = 4.0;     /* Width of simulated domain */
 double ylength = 1.0;     /* Height of simulated domain */
@@ -34,25 +54,25 @@ int fluid_cells = 0;
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 int u_size_x, u_size_y;
 double ** u;
-__device__ double ** cuda_u;
+__device__ double * cuda_u;
 int v_size_x, v_size_y;
 double ** v;
-__device__ double ** cuda_v;
+__device__ double * cuda_v;
 int p_size_x, p_size_y;
 double ** p;
-__device__ double ** cuda_p; 
+__device__ double * cuda_p; 
 int rhs_size_x, rhs_size_y;
 double ** rhs;
-__device__ double ** cuda_rhs;
+__device__ double * cuda_rhs;
 int f_size_x, f_size_y;
 double ** f;
-__device__ double ** cuda_f;
+__device__ double * cuda_f;
 int g_size_x, g_size_y;
 double ** g;
-__device__ double ** cuda_g;
+__device__ double * cuda_g;
 int flag_size_x, flag_size_y;
 char ** flag;
-__device__ char ** cuda_flag;
+__device__ char * cuda_flag;
 
 /**
  * @brief Allocate a 2D array that is addressable using square brackets
@@ -92,27 +112,29 @@ char **alloc_2d_char_array(int m, int n) {
 	return x;
 }
 
-size_t alloc_2d_cuda_array(double** array, int m, int n) {
+double* alloc_2d_cuda_array(int m, int n) {
 	size_t pitch;
+	double* d_array;
 
-	cudaMallocPitch((void**) array, &pitch, n*sizeof(double), m);
-	return pitch;
+	checkCuda(cudaMallocPitch(&d_array, &pitch, n*sizeof(double), m));
+	return d_array;
 }
 
-size_t alloc_2d_char_cuda_array(char** array, int m, int n) {
+char* alloc_2d_char_cuda_array(int m, int n) {
 	size_t pitch;
+	char* d_array;
 
-	cudaMallocPitch((void**) array, &pitch, n*sizeof(char), m);
-	return pitch;
+	checkCuda(cudaMallocPitch(&d_array, &pitch, n*sizeof(char), m));
+	return d_array;
 }
 
 
-void to_gpu_2d(void** array, void** cuda_array, int m, int size) {
-	cudaMemcpy2D(cuda_array, size, array, size, size, m, cudaMemcpyHostToDevice);
+void to_gpu_2d(void* array, void* cuda_array, int m, int size) {
+	checkCuda(cudaMemcpy2D(cuda_array, size, array, size, size, m, cudaMemcpyHostToDevice));
 }
 
-void from_gpu_2d(void** array, void** cuda_array, int m, int size) {
-	cudaMemcpy2D(array, size, cuda_array, size, size, m, cudaMemcpyDeviceToHost);
+void from_gpu_2d(void* array, void* cuda_array, int m, int size) {
+	checkCuda(cudaMemcpy2D(array, size, cuda_array, size, size, m, cudaMemcpyDeviceToHost));
 }
 
 /**
@@ -125,6 +147,6 @@ void free_2d_array(void ** array) {
 	free(array);
 }
 
-void free_2d_cuda_array(void ** array) {
-	cudaFree(array);
+void free_2d_cuda_array(void *array) {
+	checkCuda(cudaFree(array));
 }

@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include "vtk.h"
-#include "data.h"
+#include "vtk.cuh"
+#include "data.cuh"
 
 char checkpoint_basename[1024];
 char result_filename[1024];

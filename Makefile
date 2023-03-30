@@ -2,7 +2,6 @@ CC = nvcc
 CFLAGS=-O3
 LINK = nvcc
 LIBFLAGS=-lm -lcuda -lcudart
-NVCCFLAGS =-gencode arch=compute_20,code=sm_20 -m64 -O2
 
 OBJDIR = obj
 

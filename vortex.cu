@@ -6,12 +6,14 @@
 #include <fcntl.h>
 #include <math.h>
 #include <time.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
-#include "data.h"
-#include "vtk.h"
-#include "setup.h"
-#include "boundary.h"
-#include "args.h"
+#include "data.cuh"
+#include "vtk.cuh"
+#include "setup.cuh"
+#include "boundary.cuh"
+#include "args.cuh"
 
 struct timespec timer;
 double get_time() {
@@ -21,6 +23,7 @@ double get_time() {
 
 #define time(func, timer) if(print_time){timer = get_time();func;timer = get_time() - timer;}else{func;}
 #define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
+
 /**
  * @brief Computation of tentative velocity field (f, g)
  * 
@@ -244,15 +247,9 @@ void set_timestep_interval() {
     }
 }
 
-__global__ void hello() {
-    printf("hello\n");
-}
 
 void main_loop() {
     double res, t, tv_time, rhs_time, p_time, v_time, boundary_time;
-
-    hello<<<1, 1>>>();
-    return;
 
     /* Main loop */
     int iters = 0;
@@ -309,6 +306,12 @@ void main_loop() {
  */
 int main(int argc, char *argv[]) {
     double setup_time, main_loop_time;
+    int deviceId = 0;
+    cudaDeviceProp prop;
+
+    checkCuda( cudaSetDevice(deviceId) );
+    checkCuda( cudaGetDeviceProperties(&prop, deviceId) );
+    printf("Device: %s\n", prop.name);
 
     setup_time = get_time();
     set_defaults();
@@ -325,7 +328,7 @@ int main(int argc, char *argv[]) {
 
     time(main_loop(), main_loop_time);
     print_timer("Main loop", main_loop_time);
-
+    test();
     free_all();
 
     return 0;

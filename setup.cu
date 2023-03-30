@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "data.h"
-#include "vtk.h"
-#include "boundary.h"
+#include "data.cuh"
+#include "vtk.cuh"
+#include "boundary.cuh"
 
 /**
  * @brief Set up some default values before arguments are parsed.
@@ -53,13 +53,13 @@ void allocate_arrays() {
 }
 
 void allocate_cuda_arrays() {
-    size_t u_pitch = alloc_2d_cuda_array(cuda_u, u_size_x, u_size_y);
-    size_t v_pitch = alloc_2d_cuda_array(cuda_v, v_size_x, v_size_y);
-    size_t p_pitch = alloc_2d_cuda_array(cuda_p, p_size_x, p_size_y);
-    size_t flag_pitch = alloc_2d_char_cuda_array(cuda_flag, flag_size_x, flag_size_y);
-    size_t rhs_pitch = alloc_2d_cuda_array(cuda_rhs, rhs_size_x, rhs_size_y);
-    size_t g_pitch = alloc_2d_cuda_array(cuda_g, g_size_x, g_size_y);
-    size_t f_pitch = alloc_2d_cuda_array(cuda_f, f_size_x, f_size_y);
+    cuda_u = alloc_2d_cuda_array(u_size_x, u_size_y);
+    cuda_v = alloc_2d_cuda_array(v_size_x, v_size_y);
+    cuda_p = alloc_2d_cuda_array(p_size_x, p_size_y);
+    cuda_flag = alloc_2d_char_cuda_array(flag_size_x, flag_size_y);
+    cuda_rhs = alloc_2d_cuda_array(rhs_size_x, rhs_size_y);
+    cuda_g = alloc_2d_cuda_array(g_size_x, g_size_y);
+    cuda_f = alloc_2d_cuda_array(f_size_x, f_size_y);
 }
 
 /**
@@ -77,16 +77,17 @@ void free_arrays() {
 }
 
 void free_cuda_arrays() {
-    free_2d_cuda_array((void**) cuda_u);
-    free_2d_cuda_array((void**) cuda_v);
-    free_2d_cuda_array((void**) cuda_p);
-    free_2d_cuda_array((void**) cuda_flag);
-    free_2d_cuda_array((void**) cuda_rhs);
-    free_2d_cuda_array((void**) cuda_f);
-    free_2d_cuda_array((void**) cuda_g);
+    free_2d_cuda_array(cuda_u);
+    free_2d_cuda_array(cuda_v);
+    free_2d_cuda_array(cuda_p);
+    free_2d_cuda_array(cuda_flag);
+    free_2d_cuda_array(cuda_rhs);
+    free_2d_cuda_array(cuda_f);
+    free_2d_cuda_array(cuda_g);
 }
 
 void free_all() {
+    test();
     free_arrays();
     free_cuda_arrays();
 }
@@ -153,13 +154,13 @@ void problem_set_up() {
             }
         }
     }
-
+    to_gpu_2d(u, cuda_u, u_size_x, sizeof(double) * u_size_y);
+    to_gpu_2d(v, cuda_v, v_size_x, sizeof(double) * v_size_y);
+    to_gpu_2d(p, cuda_p, p_size_x, sizeof(double) * p_size_y);
+    to_gpu_2d(flag, cuda_flag, flag_size_x, sizeof(char) * flag_size_y);
+    to_gpu_2d(rhs, cuda_rhs, rhs_size_x, sizeof(double) * rhs_size_y);
+    to_gpu_2d(g, cuda_g, g_size_x, sizeof(double) * g_size_y);
+    to_gpu_2d(f, cuda_f, f_size_x, sizeof(double) * f_size_y);
 	apply_boundary_conditions<<<1, 1>>>(imax, jmax, ui, vi);
-    to_gpu_2d((void**) u, (void**) cuda_u, u_size_x, sizeof(double) * u_size_y);
-    to_gpu_2d((void**) v, (void**) cuda_v, v_size_x, sizeof(double) * v_size_y);
-    to_gpu_2d((void**) p, (void**) cuda_p, p_size_x, sizeof(double) * p_size_y);
-    to_gpu_2d((void**) flag, (void**) cuda_flag, flag_size_x, sizeof(char) * flag_size_y);
-    to_gpu_2d((void**) rhs, (void**) cuda_rhs, rhs_size_x, sizeof(double) * rhs_size_y);
-    to_gpu_2d((void**) g, (void**) cuda_g, g_size_x, sizeof(double) * g_size_y);
-    to_gpu_2d((void**) f, (void**) cuda_f, f_size_x, sizeof(double) * f_size_y);
+    cudaDeviceSynchronize();
 }
