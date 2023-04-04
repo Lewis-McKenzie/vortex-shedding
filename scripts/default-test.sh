@@ -5,8 +5,9 @@ rm -r ./obj
 make
 
 bench='benchmarks/main/default'
-test='benchmarks/main/default'
+test='benchmarks/MPI/default'
+n=4
 
-./vortex -d 0.0025 -o $test
+mpirun -n $n ./vortex -d 0.0025 -o $test
 
 python3 ./validation/validate.py $dir/$bench.vtk $dir/$test.vtk
