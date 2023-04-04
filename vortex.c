@@ -277,15 +277,13 @@ void set_timestep_interval() {
 
 
 void main_loop() {
-    double res, t, tv_time, rhs_time, p_time, v_time, boundary_time;
+    double res, t, tv_time, rhs_time, p_time, v_time, boundary_time, sync_time;
 
     /* Main loop */
     int iters = 0;
     for (t = 0.0; t < t_end; t += del_t, iters++) {
         if (!fixed_dt)
             set_timestep_interval();
-
-        //TODO: sync arrays
 
         time(compute_tentative_velocity(), tv_time);
 
@@ -297,6 +295,8 @@ void main_loop() {
 
         time(apply_boundary_conditions(), boundary_time);
 
+        time(sync_all(), sync_time);
+
         if ((iters % output_freq == 0) && (rank == 0)) {
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
             print_timer("compute_tentative_velocity", tv_time);
@@ -304,6 +304,7 @@ void main_loop() {
             print_timer("poisson", p_time);
             print_timer("update_velocity", v_time);
             print_timer("apply_boundary_conditions", boundary_time);
+            print_timer("sync", sync_time);
             if(print_time)
                 printf("\n");
 
@@ -314,7 +315,7 @@ void main_loop() {
         // Average the time
         MPI_Allreduce(MPI_IN_PLACE, &t, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         t = t / size;
-        combine_2d_array((void**) p, sizeof(double), MPI_DOUBLE);
+        
     } /* End of main loop */
 
     if (rank == 0) {

@@ -1,6 +1,9 @@
 #ifndef MPI_TOOLS_H
 #define MPI_TOOLS_H
 
-void combine_2d_array(void** target, int type_size, MPI_Datatype datatype);
+void sync_all();
+void sync(void** target, MPI_Datatype datatype);
+void broadcast(void** target, MPI_Datatype datatype);
+void combine_2d_array(void** target, MPI_Datatype datatype);
 
 #endif

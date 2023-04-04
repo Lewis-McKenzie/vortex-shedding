@@ -6,39 +6,48 @@
 #include "mpi_tools.h"
 #include "data.h"
 
-void broadcast() {
-
+void sync_all() {
+    sync((void**) u, MPI_DOUBLE);
+    sync((void**) v, MPI_DOUBLE);
+    sync((void**) f, MPI_DOUBLE);
+    sync((void**) g, MPI_DOUBLE);
+    sync((void**) p, MPI_DOUBLE);
+    sync((void**) rhs, MPI_DOUBLE);
 }
 
-void combine_2d_array(void** target, int type_size, MPI_Datatype datatype) {
+void sync(void** target, MPI_Datatype datatype) {
+    combine_2d_array(target, datatype);
+    broadcast(target, datatype);
+}
+
+void broadcast(void** target, MPI_Datatype datatype) {
+    MPI_Bcast(target[0], (imax+2) * (jmax+2), datatype, 0, MPI_COMM_WORLD);
+}
+
+void combine_2d_array(void** target, MPI_Datatype datatype) {
     if (rank == 0) {
         for (int r = 1; r < size; r++) {
             // index of the first row to recieve
-            int ptr = r * imax / size;
+            int ptr = r * (imax+2) / size;
             // number of rows to get
-            int count = imax / size;
+            int count = (imax+2) / size;
             if (r == size - 1) {
-                count = imax - r * count;
+                count = (imax+2) - r * count;
             }
 
-            void* buffer = malloc(type_size * count * jmax);
             MPI_Status status;
-            MPI_Recv(buffer, count * jmax, datatype, r, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-
-            memcpy(target[ptr], buffer, type_size * count * jmax);
+            MPI_Recv(target[ptr], count * (jmax+2), datatype, r, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         }
     } else {
         // index of the first row to send
-        int ptr = rank * imax / size;
+        int ptr = rank * (imax+2) / size;
         // number of rows to send
-        int count = imax / size;        
+        int count = (imax+2) / size;        
         if (rank == size - 1) {
-            count = imax - rank * count;
+            count = (imax+2) - rank * count;
         }
 
-        void* buffer = malloc(type_size * count * jmax);
-        memcpy(buffer, target[ptr], type_size * count * jmax);
-        MPI_Send(buffer, count * jmax, datatype, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(target[ptr], count * (jmax+2), datatype, 0, 0, MPI_COMM_WORLD);
 
     }
 }
