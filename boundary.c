@@ -1,6 +1,10 @@
+#include <mpi.h>
+
 #include "data.h"
 #include "boundary.h"
+#include "mpi_tools.h"
 
+#define init_outer_loop(index, limit, max) index = rank * (imax+2) / size; limit = (rank+1) * (imax+2) / size;if (rank == 0) {index = 1;}if (limit > max) {limit = max;}
 /**
  * @brief Given the boundary conditions defined by the flag matrix, update
  * the u and v velocities. Also enforce the boundary conditions at the
@@ -12,35 +16,34 @@ void apply_boundary_conditions() {
             /* Fluid freely flows in from the west */
             u[0][j] = u[1][j];
             v[0][j] = v[1][j];
+        }
 
+    }
+    if (rank == size - 1) {
+        for (int j = 0; j < jmax+2; j++) {
             /* Fluid freely flows out to the east */
             u[imax][j] = u[imax-1][j];
             v[imax+1][j] = v[imax][j];
         }
+    }
 
-        for (int i = 0; i < imax+2; i++) {
-            /* The vertical velocity approaches 0 at the north and south
-            * boundaries, but fluid flows freely in the horizontal direction */
-            v[i][jmax] = 0.0;
-            u[i][jmax+1] = u[i][jmax];
+    int i, i_limit;
+    init_outer_loop(i, i_limit, imax+2);
+    for (; i < i_limit; i++) {
+        /* The vertical velocity approaches 0 at the north and south
+        * boundaries, but fluid flows freely in the horizontal direction */
+        v[i][jmax] = 0.0;
+        u[i][jmax+1] = u[i][jmax];
 
-            v[i][0] = 0.0;
-            u[i][0] = u[i][1];
-        }
+        v[i][0] = 0.0;
+        u[i][0] = u[i][1];
     }
 
     /* Apply no-slip boundary conditions to cells that are adjacent to
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
-    int i = rank * imax / size;
-    int i_limit = (rank+1) * imax / size;
-    if (rank == 0) {
-        i = 1;
-    }
-    if (rank == size - 1) {
-        i_limit = imax + 1;
-    }  
+    init_outer_loop(i, i_limit, imax+1);
     for (; i < i_limit; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & B_NSEW) {
@@ -104,4 +107,6 @@ void apply_boundary_conditions() {
             v[0][j] = 2 * vi - v[1][j];
         }        
     }
+    //sync((void **) u, MPI_DOUBLE);
+    //sync((void **) v, MPI_DOUBLE);
 }

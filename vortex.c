@@ -23,20 +23,14 @@ double get_time() {
 
 #define time(func, timer) if(print_time){timer = get_time();func;timer = get_time() - timer;}else{func;}
 #define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
-#define init_loop(index, limit, max, addon) index = rank * max / size; limit = (rank+1) * max / size;if (rank == 0) {index = 1;}if (rank == size - 1) {limit = max+addon;}
+#define init_outer_loop(index, limit, max) index = rank * (imax+2) / size; limit = (rank+1) * (imax+2) / size;if (rank == 0) {index = 1;}if (limit > max) {limit = max;}
 /**
  * @brief Computation of tentative velocity field (f, g)
  * 
  */
 void compute_tentative_velocity() {
-    int i = rank * imax / size;
-    int i_limit = (rank+1) * imax / size;
-    if (rank == 0) {
-        i = 1;
-    }
-    if (rank == size - 1) {
-        i_limit = imax;
-    }
+    int i, i_limit;
+    init_outer_loop(i, i_limit, imax);
     for (; i < i_limit; i++) {
         for (int j = 1; j < jmax+1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -61,14 +55,7 @@ void compute_tentative_velocity() {
         }
     }
 
-    i = rank * imax / size;
-    i_limit = (rank+1) * imax / size;
-    if (rank == 0) {
-        i = 1;
-    }
-    if (rank == size - 1) {
-        i_limit = imax+1;
-    }
+    init_outer_loop(i, i_limit, imax+1);
     for (; i < i_limit; i++) {
         for (int j = 1; j < jmax; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -97,13 +84,22 @@ void compute_tentative_velocity() {
         /* f & g at external boundaries */
         for (int j = 1; j < jmax+1; j++) {
             f[0][j]    = u[0][j];
-            f[imax][j] = u[imax][j];
-        }
-        for (int i = 1; i < imax+1; i++) {
-            g[i][0]    = v[i][0];
-            g[i][jmax] = v[i][jmax];
         }
     }
+    if (rank == size - 1) {
+        /* f & g at external boundaries */
+        for (int j = 1; j < jmax+1; j++) {
+            f[imax][j] = u[imax][j];
+        }
+    }
+
+    init_outer_loop(i, i_limit, imax+1);
+    for (; i < i_limit; i++) {
+        g[i][0]    = v[i][0];
+        g[i][jmax] = v[i][jmax];
+    }
+    //sync((void **)g, MPI_DOUBLE);
+    //sync((void **)f, MPI_DOUBLE);
 }
 
 
@@ -113,7 +109,7 @@ void compute_tentative_velocity() {
  */
 void compute_rhs() {
     int i, i_limit;
-    init_loop(i, i_limit, imax, 1);
+    init_outer_loop(i, i_limit, imax+1);
     for (; i < i_limit; i++) {
         for (int j = 1;j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
@@ -124,6 +120,7 @@ void compute_rhs() {
             }
         }
     }
+    //sync((void **)rhs, MPI_DOUBLE);
 }
 
 
@@ -137,7 +134,7 @@ double poisson() {
     double p0 = 0.0;
     /* Calculate sum of squares */
     int i, i_limit;
-    init_loop(i, i_limit, imax, 1);
+    init_outer_loop(i, i_limit, imax+1);
     for (; i < i_limit; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
@@ -154,7 +151,7 @@ double poisson() {
     for (iter = 0; iter < itermax; iter++) {
 
         for (int rb = 0; rb < 2; rb++) {
-            init_loop(i, i_limit, imax, 1);
+            init_outer_loop(i, i_limit, imax+1);
             for (; i < i_limit; i++) {
                 for (int j = 1; j < jmax+1; j++) {
                     if ((i + j) % 2 != rb) { continue; }
@@ -181,9 +178,11 @@ double poisson() {
                 }
             }
         }
+
+        //sync((void **) p, MPI_DOUBLE);
         
         /* computation of residual */
-        init_loop(i, i_limit, imax, 1);
+        init_outer_loop(i, i_limit, imax+1);
         for (; i < i_limit; i++) {
             for (int j = 1; j < jmax+1; j++) {
                 if (flag[i][j] & C_F) {
@@ -218,7 +217,7 @@ double poisson() {
  */
 void update_velocity() {
     int i, i_limit;
-    init_loop(i, i_limit, imax, -2);
+    init_outer_loop(i, i_limit, imax-2);
     for (; i < i_limit; i++) {
         for (int j = 1; j < jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -228,7 +227,7 @@ void update_velocity() {
         }
     }
 
-    init_loop(i, i_limit, imax, -1);
+    init_outer_loop(i, i_limit, imax-1);
     for (; i < i_limit; i++) {
         for (int j = 1; j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -237,6 +236,8 @@ void update_velocity() {
             }
         }
     }
+    //sync((void **) u, MPI_DOUBLE);
+    //sync((void **) v, MPI_DOUBLE);
 }
 
 
@@ -315,7 +316,7 @@ void main_loop() {
         // Average the time
         MPI_Allreduce(MPI_IN_PLACE, &t, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         t = t / size;
-        
+
     } /* End of main loop */
 
     if (rank == 0) {
