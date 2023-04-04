@@ -26,16 +26,16 @@ class Data:
         for i, row in enumerate(self.u):
             for j, u in enumerate(row):
                 if u != __o.u[i][j]:
-                    print(f"u ({i}, {j}) diff: {abs(i - __o.u[i][j])}")
+                    print(f"u ({i}, {j}) diff: {abs(u - __o.u[i][j])}")
                     return False
         for i, row in enumerate(self.v):
             for j, v in enumerate(row):
                 if v != __o.v[i][j]:
-                    print(f"v ({i}, {j}) diff: {abs(i - __o.v[i][j])}")
+                    print(f"v ({i}, {j}) diff: {abs(v - __o.v[i][j])}")
                     return False
         for i, row in enumerate(self.p):
             for j, p in enumerate(row):
                 if p != __o.p[i][j]:
-                    print(f"p ({i}, {j}) diff: {abs(i - __o.p[i][j])}")
+                    print(f"p ({i}, {j}) diff: {abs(p - __o.p[i][j])}")
                     return False
         return True
