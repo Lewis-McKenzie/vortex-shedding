@@ -1,36 +1,40 @@
-from typing import List
-
+from typing import List, Tuple
+import argparse
+ 
 from data import Data
 
-FILEPATH = "F:\\Documents\\Uni\\HPC\\Assessment\\vortex-shedding\\out\\vortex.vtk"
-
 class Validator:
-    data = Data()
 
     @staticmethod
-    def read_file(filepath: str) -> None:
+    def validate(bench: str, test: str) -> bool:
+        benchmark = Validator.read_file(bench)
+        result = Validator.read_file(test)
+        return benchmark == result
+
+    @staticmethod
+    def read_file(filepath: str) -> Data:
+        data = Data()
         with open(filepath, 'r', encoding="utf-8") as file:
             text = file.read()
             tables = text.split("LOOKUP_TABLE default")
-            Validator.parse_header(tables[0])
-            Validator.data.u = Validator.parse_float_table(tables[1])
-            Validator.data.v = Validator.parse_float_table(tables[2])
-            Validator.data.p = Validator.parse_float_table(tables[3])
-            Validator.data.flag = Validator.parse_int_table(tables[4])
-            d = Validator.data
-            print()
+            data = Validator.parse_header(tables[0], data)
+            data.u = Validator.parse_float_table(tables[1])
+            data.v = Validator.parse_float_table(tables[2])
+            data.p = Validator.parse_float_table(tables[3])
+            data.flag = Validator.parse_int_table(tables[4])
+        return data
 
     @staticmethod
-    def parse_header(text: str) -> None:
+    def parse_header(text: str, data: Data) -> Data:
         feilds = text.split("\n")
-        print(feilds)
-        Validator.data.time = float(feilds[6])
-        Validator.data.iters = int(feilds[8])
+        data.time = float(feilds[6])
+        data.iters = int(feilds[8])
         dims = feilds[9].split(" ")
-        Validator.data.dim_x = int(dims[1])
-        Validator.data.dim_x = int(dims[2])
+        data.dim_x = int(dims[1])
+        data.dim_y = int(dims[2])
         point_data = feilds[12].split(" ")
-        Validator.data.point_data = int(point_data[1])
+        data.point_data = int(point_data[1])
+        return data
 
     @staticmethod
     def parse_float_table(text: str) -> List[List[float]]:
@@ -63,11 +67,16 @@ class Validator:
             lines = lines[:-2]
         return lines[1:]
 
-
-
-
 def main() -> None:
-    Validator.read_file(FILEPATH)
+    bench, test = args()
+    assert Validator.validate(bench, test)
+
+def args() -> Tuple[str, str]:
+    parser = argparse.ArgumentParser(description="Validate a test vtk file against a benchmark", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("bench", help="Location of benchmark vtk file")
+    parser.add_argument("test", help="Location of test vtk file")
+    args = parser.parse_args()
+    return args.bench, args.test
 
 if __name__ == "__main__":
     main()
