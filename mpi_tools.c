@@ -10,32 +10,35 @@ void broadcast() {
 
 }
 
-void combine_array(void* target, int type_size, int max, MPI_Datatype datatype) {
+void combine_2d_array(void** target, int type_size, MPI_Datatype datatype) {
     if (rank == 0) {
-        for (int i = 1; i < size; i++) {
-            int ptr = rank * imax / size;
-            int count = max / size;
-            if (rank == size - 1) {
-                count = max - rank * count;
+        for (int r = 1; r < size; r++) {
+            // index of the first row to recieve
+            int ptr = r * imax / size;
+            // number of rows to get
+            int count = imax / size;
+            if (r == size - 1) {
+                count = imax - r * count;
             }
 
-            void* buffer = malloc(type_size * count);
+            void* buffer = malloc(type_size * count * jmax);
             MPI_Status status;
-            MPI_Recv(buffer, count, datatype, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            MPI_Recv(buffer, count * jmax, datatype, r, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
-            memcpy(target + ptr, buffer, type_size * count);
+            memcpy(target[ptr], buffer, type_size * count * jmax);
         }
     } else {
-        int count = max / size;
+        // index of the first row to send
         int ptr = rank * imax / size;
+        // number of rows to send
+        int count = imax / size;        
         if (rank == size - 1) {
-            count = max - rank * count;
+            count = imax - rank * count;
         }
 
-
-        void* buffer = malloc(type_size * count);
-        memcpy(buffer, target + ptr, type_size * count);
-        MPI_Send(buffer, count, datatype, 0, MPI_ANY_TAG, MPI_COMM_WORLD);
+        void* buffer = malloc(type_size * count * jmax);
+        memcpy(buffer, target[ptr], type_size * count * jmax);
+        MPI_Send(buffer, count * jmax, datatype, 0, 0, MPI_COMM_WORLD);
 
     }
 }

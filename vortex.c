@@ -23,6 +23,7 @@ double get_time() {
 
 #define time(func, timer) if(print_time){timer = get_time();func;timer = get_time() - timer;}else{func;}
 #define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
+#define init_loop(index, limit, max, addon) index = rank * max / size; limit = (rank+1) * max / size;if (rank == 0) {index = 1;}if (rank == size - 1) {limit = max+addon;}
 /**
  * @brief Computation of tentative velocity field (f, g)
  * 
@@ -111,14 +112,8 @@ void compute_tentative_velocity() {
  * 
  */
 void compute_rhs() {
-    int i = rank * imax / size;
-    int i_limit = (rank+1) * imax / size;
-    if (rank == 0) {
-        i = 1;
-    }
-    if (rank == size - 1) {
-        i_limit = imax+1;
-    }
+    int i, i_limit;
+    init_loop(i, i_limit, imax, 1);
     for (; i < i_limit; i++) {
         for (int j = 1;j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
@@ -139,17 +134,10 @@ void compute_rhs() {
  * 
  */
 double poisson() {
-
     double p0 = 0.0;
     /* Calculate sum of squares */
-    int i = rank * imax / size;
-    int i_limit = (rank+1) * imax / size;
-    if (rank == 0) {
-        i = 1;
-    }
-    if (rank == size - 1) {
-        i_limit = imax+1;
-    }
+    int i, i_limit;
+    init_loop(i, i_limit, imax, 1);
     for (; i < i_limit; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
@@ -166,14 +154,7 @@ double poisson() {
     for (iter = 0; iter < itermax; iter++) {
 
         for (int rb = 0; rb < 2; rb++) {
-            i = rank * imax / size;
-            i_limit = (rank+1) * imax / size;
-            if (rank == 0) {
-                i = 1;
-            }
-            if (rank == size - 1) {
-                i_limit = imax+1;
-            }            
+            init_loop(i, i_limit, imax, 1);
             for (; i < i_limit; i++) {
                 for (int j = 1; j < jmax+1; j++) {
                     if ((i + j) % 2 != rb) { continue; }
@@ -202,14 +183,7 @@ double poisson() {
         }
         
         /* computation of residual */
-        i = rank * imax / size;
-        i_limit = (rank+1) * imax / size;
-        if (rank == 0) {
-            i = 1;
-        }
-        if (rank == size - 1) {
-            i_limit = imax+1;
-        }    
+        init_loop(i, i_limit, imax, 1);
         for (; i < i_limit; i++) {
             for (int j = 1; j < jmax+1; j++) {
                 if (flag[i][j] & C_F) {
@@ -243,14 +217,8 @@ double poisson() {
  * velocity values and the new pressure matrix
  */
 void update_velocity() {
-    int i = rank * imax / size;
-    int i_limit = (rank+1) * imax / size;
-    if (rank == 0) {
-        i = 1;
-    }
-    if (rank == size - 1) {
-        i_limit = imax - 2;
-    }  
+    int i, i_limit;
+    init_loop(i, i_limit, imax, -2);
     for (; i < i_limit; i++) {
         for (int j = 1; j < jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -259,15 +227,8 @@ void update_velocity() {
             }
         }
     }
-    
-    i = rank * imax / size;
-    i_limit = (rank+1) * imax / size;
-    if (rank == 0) {
-        i = 1;
-    }
-    if (rank == size - 1) {
-        i_limit = imax - 1;
-    }  
+
+    init_loop(i, i_limit, imax, -1);
     for (; i < i_limit; i++) {
         for (int j = 1; j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -350,13 +311,19 @@ void main_loop() {
             if ((!no_output) && (enable_checkpoints))
                 write_checkpoint(iters, t+del_t);
         }
+        // Average the time
+        MPI_Allreduce(MPI_IN_PLACE, &t, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        t = t / size;
+        combine_2d_array((void**) p, sizeof(double), MPI_DOUBLE);
     } /* End of main loop */
 
-    printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
-    printf("Simulation complete.\n");
+    if (rank == 0) {
+        printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
+        printf("Simulation complete.\n");
 
-    if ((!no_output) & (rank == 0))
-        write_result(iters, t);
+        if (!no_output)
+            write_result(iters, t);
+    }
 }
 
 
@@ -384,10 +351,14 @@ int main(int argc, char *argv[]) {
     allocate_arrays();
     problem_set_up();
     setup_time = get_time() - setup_time;
-    print_timer("Setup", setup_time);
+    if (rank == 0) {
+        print_timer("Setup", setup_time);
+    }
 
     time(main_loop(), main_loop_time);
-    print_timer("Main loop", main_loop_time);
+    if (rank == 0) {
+        print_timer("Main loop", main_loop_time);
+    }
 
     free_arrays();
 
