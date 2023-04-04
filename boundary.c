@@ -7,31 +7,41 @@
  * edges of the matrix.
  */
 void apply_boundary_conditions() {
-    for (int j = 0; j < jmax+2; j++) {
-        /* Fluid freely flows in from the west */
-        u[0][j] = u[1][j];
-        v[0][j] = v[1][j];
+    if (rank == 0) {
+        for (int j = 0; j < jmax+2; j++) {
+            /* Fluid freely flows in from the west */
+            u[0][j] = u[1][j];
+            v[0][j] = v[1][j];
 
-        /* Fluid freely flows out to the east */
-        u[imax][j] = u[imax-1][j];
-        v[imax+1][j] = v[imax][j];
-    }
+            /* Fluid freely flows out to the east */
+            u[imax][j] = u[imax-1][j];
+            v[imax+1][j] = v[imax][j];
+        }
 
-    for (int i = 0; i < imax+2; i++) {
-        /* The vertical velocity approaches 0 at the north and south
-         * boundaries, but fluid flows freely in the horizontal direction */
-        v[i][jmax] = 0.0;
-        u[i][jmax+1] = u[i][jmax];
+        for (int i = 0; i < imax+2; i++) {
+            /* The vertical velocity approaches 0 at the north and south
+            * boundaries, but fluid flows freely in the horizontal direction */
+            v[i][jmax] = 0.0;
+            u[i][jmax+1] = u[i][jmax];
 
-        v[i][0] = 0.0;
-        u[i][0] = u[i][1];
+            v[i][0] = 0.0;
+            u[i][0] = u[i][1];
+        }
     }
 
     /* Apply no-slip boundary conditions to cells that are adjacent to
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
-    for (int i = 1; i < imax+1; i++) {
+    int i = rank * imax / size;
+    int i_limit = (rank+1) * imax / size;
+    if (rank == 0) {
+        i = 1;
+    }
+    if (rank == size - 1) {
+        i_limit = imax + 1;
+    }  
+    for (; i < i_limit; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & B_NSEW) {
                 switch (flag[i][j]) {
@@ -84,12 +94,14 @@ void apply_boundary_conditions() {
         }
     }
 
-    /* Finally, fix the horizontal velocity at the  western edge to have
-     * a continual flow of fluid into the simulation.
-     */
-    v[0][0] = 2 * vi-v[1][0];
-    for (int j = 1; j < jmax+1; j++) {
-        u[0][j] = ui;
-        v[0][j] = 2 * vi - v[1][j];
+    if (rank == 0) {
+        /* Finally, fix the horizontal velocity at the  western edge to have
+        * a continual flow of fluid into the simulation.
+        */
+        v[0][0] = 2 * vi-v[1][0];
+        for (int j = 1; j < jmax+1; j++) {
+            u[0][j] = ui;
+            v[0][j] = 2 * vi - v[1][j];
+        }        
     }
 }

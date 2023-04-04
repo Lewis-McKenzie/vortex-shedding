@@ -37,6 +37,7 @@ extern int fluid_cells;
 extern double delx, dely;
 extern double rdx2, rdy2;
 extern double beta_2;
+extern int rank, size;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 extern int u_size_x, u_size_y;

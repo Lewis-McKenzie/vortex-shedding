@@ -27,6 +27,7 @@ double vi = 0.0;           /* Initial Y velocity */
 double delx, dely;
 double rdx2, rdy2;
 double beta_2;
+int rank, size;
 
 int fluid_cells = 0;
 
