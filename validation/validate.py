@@ -1,16 +1,14 @@
-from typing import List
-
+from typing import List, Tuple
+import argparse
+ 
 from data import Data
-
-FILEPATH = "F:\\Documents\\Uni\\HPC\\Assessment\\vortex-shedding\\out\\vortex.vtk"
-BENCHMARK_FILEPATH = "F:\\Documents\\Uni\\HPC\\Assessment\\vortex-shedding\\benchmarks\\main\\default.vtk"
 
 class Validator:
 
     @staticmethod
-    def validate() -> bool:
-        benchmark = Validator.read_file(BENCHMARK_FILEPATH)
-        result = Validator.read_file(FILEPATH)
+    def validate(bench: str, test: str) -> bool:
+        benchmark = Validator.read_file(bench)
+        result = Validator.read_file(test)
         return benchmark == result
 
     @staticmethod
@@ -70,7 +68,15 @@ class Validator:
         return lines[1:]
 
 def main() -> None:
-    assert Validator.validate()
+    bench, test = args()
+    assert Validator.validate(bench, test)
+
+def args() -> Tuple[str, str]:
+    parser = argparse.ArgumentParser(description="Validate a test vtk file against a benchmark", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("bench", help="Location of benchmark vtk file")
+    parser.add_argument("test", help="Location of test vtk file")
+    args = parser.parse_args()
+    return args.bench, args.test
 
 if __name__ == "__main__":
     main()
