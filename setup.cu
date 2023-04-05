@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "data.h"
-#include "vtk.h"
-#include "boundary.h"
+#include "data.cuh"
+#include "vtk.cuh"
+#include "boundary.cuh"
 
 /**
  * @brief Set up some default values before arguments are parsed.

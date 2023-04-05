@@ -1,11 +1,11 @@
 #! /usr/bin/bash
 dir=$(pwd)
 
-rm -r ./obj
+make clean
 make
 
 bench='benchmarks/main/default'
-test='benchmarks/main/default'
+test='benchmarks/CUDA/default'
 
 ./vortex -d 0.0025 -o $test
 

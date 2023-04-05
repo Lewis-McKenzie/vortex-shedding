@@ -3,8 +3,8 @@
 #include <math.h>
 #include <unistd.h>
 
-#include "vtk.h"
-#include "data.h"
+#include "vtk.cuh"
+#include "data.cuh"
 
 double xlength = 4.0;     /* Width of simulated domain */
 double ylength = 1.0;     /* Height of simulated domain */

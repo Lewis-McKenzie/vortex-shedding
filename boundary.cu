@@ -1,5 +1,5 @@
-#include "data.h"
-#include "boundary.h"
+#include "data.cuh"
+#include "boundary.cuh"
 
 /**
  * @brief Given the boundary conditions defined by the flag matrix, update

@@ -7,11 +7,11 @@
 #include <math.h>
 #include <time.h>
 
-#include "data.h"
-#include "vtk.h"
-#include "setup.h"
-#include "boundary.h"
-#include "args.h"
+#include "data.cuh"
+#include "vtk.cuh"
+#include "setup.cuh"
+#include "boundary.cuh"
+#include "args.cuh"
 
 struct timespec timer;
 double get_time() {
