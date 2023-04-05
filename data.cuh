@@ -54,6 +54,9 @@ extern double ** g;
 extern int flag_size_x, flag_size_y;
 extern char ** flag;
 
+__global__ void test();
+
+cudaError_t checkCuda(cudaError_t result);
 double **alloc_2d_array(int m, int n);
 char **alloc_2d_char_array(int m, int n);
 void free_2d_array(void ** array);

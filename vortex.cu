@@ -20,13 +20,21 @@ double get_time() {
 }
 
 #define time(func, timer) if(print_time){timer = get_time();func;timer = get_time() - timer;}else{func;}
+
 #define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
+
+#define init_outer_loop(i, limit, addon) i = threadIdx.x * (imax+2) / blockDim.x;limit = (threadIdx.x+1) * (imax+2) / blockDim.x;if (i == 0) {i = 1;} else if (limit > imax+addon) {i_end = imax+addon;}
+
+#define debug_cuda(i, limit) printf("thread: %d out of %d on block %d. start: %d end: %d\n", threadIdx.x, blockDim.x, blockIdx.x, i, limit);
 /**
  * @brief Computation of tentative velocity field (f, g)
  * 
  */
-void compute_tentative_velocity() {
-    for (int i = 1; i < imax; i++) {
+__global__ void compute_tentative_velocity(double** u, double **v, char **flag, double **f, double **g, int imax, int jmax, double y, double delx, double dely, double del_t, double Re) {
+    int i, i_end;
+    init_outer_loop(i, i_end, 0);
+    //debug_cuda(i, i_end);
+    for (; i < i_end; i++) {
         for (int j = 1; j < jmax+1; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
@@ -49,7 +57,9 @@ void compute_tentative_velocity() {
             }
         }
     }
-    for (int i = 1; i < imax+1; i++) {
+
+    init_outer_loop(i, i_end, 1);
+    for (; i < i_end; i++) {
         for (int j = 1; j < jmax; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
@@ -74,11 +84,17 @@ void compute_tentative_velocity() {
     }
 
     /* f & g at external boundaries */
-    for (int j = 1; j < jmax+1; j++) {
-        f[0][j]    = u[0][j];
-        f[imax][j] = u[imax][j];
+    if (threadIdx.x == 0) {
+        for (int j = 1; j < jmax+1; j++) {
+            f[0][j]    = u[0][j];
+        }
+    } else if (threadIdx.x == blockDim.x - 1) {
+        for (int j = 1; j < jmax+1; j++) {
+            f[imax][j] = u[imax][j];
+        }
     }
-    for (int i = 1; i < imax+1; i++) {
+    init_outer_loop(i, i_end, 1);
+    for (i; i < i_end; i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
     }
@@ -89,8 +105,10 @@ void compute_tentative_velocity() {
  * @brief Calculate the right hand side of the pressure equation 
  * 
  */
-void compute_rhs() {
-    for (int i = 1; i < imax+1; i++) {
+__global__ void compute_rhs(char **flag, double **f, double **g, double **rhs, int imax, int jmax, double delx, double dely, double del_t) {
+    int i, i_end;
+    init_outer_loop(i, i_end, 1);
+    for (; i < i_end; i++) {
         for (int j = 1;j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
                 /* only for fluid and non-surface cells */
@@ -109,11 +127,13 @@ void compute_rhs() {
  * @return Calculated residual of the computation
  * 
  */
-double poisson() {
+__global__ void poisson(double **u, double **v, double **p, char **flag, double **rhs, int imax, int jmax, int fluid_cells, int itermax, double omega, double beta_2, double rdx2, double rdy2, double eps) {
 
     double p0 = 0.0;
     /* Calculate sum of squares */
-    for (int i = 1; i < imax+1; i++) {
+    int i, i_end;
+    init_outer_loop(i, i_end, 1);
+    for (; i < i_end; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
         }
@@ -126,8 +146,11 @@ double poisson() {
     int iter;
     double res = 0.0;
     for (iter = 0; iter < itermax; iter++) {
+
         for (int rb = 0; rb < 2; rb++) {
-            for (int i = 1; i < imax+1; i++) {
+
+            init_outer_loop(i, i_end, 1);
+            for (; i < i_end; i++) {
                 for (int j = 1; j < jmax+1; j++) {
                     if ((i + j) % 2 != rb) { continue; }
                     if (flag[i][j] == (C_F | B_NSEW)) {
@@ -155,7 +178,8 @@ double poisson() {
         }
         
         /* computation of residual */
-        for (int i = 1; i < imax+1; i++) {
+        init_outer_loop(i, i_end, 1);
+        for (; i < i_end; i++) {
             for (int j = 1; j < jmax+1; j++) {
                 if (flag[i][j] & C_F) {
                     double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
@@ -178,7 +202,7 @@ double poisson() {
         if (res < eps) break;
     }
 
-    return res;
+    //return res;
 }
 
 
@@ -186,8 +210,10 @@ double poisson() {
  * @brief Update the velocity values based on the tentative
  * velocity values and the new pressure matrix
  */
-void update_velocity() {   
-    for (int i = 1; i < imax-2; i++) {
+__global__ void update_velocity(double **u, double **v, double **p, char ** flag, double **f, double **g, int imax, int jmax, double delx, double dely, double del_t) {
+    int i, i_end;
+    init_outer_loop(i, i_end, -2);
+    for (; i < i_end; i++) {
         for (int j = 1; j < jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
@@ -196,7 +222,8 @@ void update_velocity() {
         }
     }
     
-    for (int i = 1; i < imax-1; i++) {
+    init_outer_loop(i, i_end, -1);
+    for (; i < i_end; i++) {
         for (int j = 1; j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
@@ -244,7 +271,7 @@ void set_timestep_interval() {
 
 
 void main_loop() {
-    double res, t, tv_time, rhs_time, p_time, v_time, boundary_time;
+    double res, t;
 
     /* Main loop */
     int iters = 0;
@@ -252,32 +279,27 @@ void main_loop() {
         if (!fixed_dt)
             set_timestep_interval();
 
-        time(compute_tentative_velocity(), tv_time);
+        compute_tentative_velocity<<<1, 1>>>(u, v, flag, f, g, imax, jmax, y, delx, dely, del_t, Re);
 
-        time(compute_rhs(), rhs_time);
+        compute_rhs<<<1, 1>>>(flag, f, g, rhs, imax, jmax, delx, dely, del_t);
 
-        time(res = poisson(), p_time);
+        //res = poisson();
+        poisson<<<1, 128>>>(u, v, p, flag, rhs, imax, jmax, fluid_cells, itermax, omega, beta_2, rdx2, rdy2, eps);
 
-        time(update_velocity(), v_time);
+        update_velocity<<<1, 1>>>(u, v, p, flag, f, g, imax, jmax, delx, dely, del_t);
 
-        time(apply_boundary_conditions(), boundary_time);
+        apply_boundary_conditions<<<1, 1>>>(u, v, flag, imax, jmax, ui, vi);
 
         if ((iters % output_freq == 0)) {
-            printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
-            print_timer("compute_tentative_velocity", tv_time);
-            print_timer("compute_rhs", rhs_time);
-            print_timer("poisson", p_time);
-            print_timer("update_velocity", v_time);
-            print_timer("apply_boundary_conditions", boundary_time);
-            if(print_time)
-                printf("\n");
-
+            printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: \n", iters, t+del_t, del_t);
 
             if ((!no_output) && (enable_checkpoints))
+                cudaDeviceSynchronize();
                 write_checkpoint(iters, t+del_t);
         }
     } /* End of main loop */
 
+    cudaDeviceSynchronize();
     printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
     printf("Simulation complete.\n");
 

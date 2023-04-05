@@ -6,7 +6,7 @@
  * the u and v velocities. Also enforce the boundary conditions at the
  * edges of the matrix.
  */
-void apply_boundary_conditions() {
+__global__ void apply_boundary_conditions(double **u, double **v, char **flag, int imax, int jmax, double ui, double vi) {
     for (int j = 0; j < jmax+2; j++) {
         /* Fluid freely flows in from the west */
         u[0][j] = u[1][j];

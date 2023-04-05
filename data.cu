@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "vtk.cuh"
 #include "data.cuh"
@@ -46,6 +47,18 @@ double ** g;
 int flag_size_x, flag_size_y;
 char ** flag;
 
+__global__ void test() {
+	printf("Here\n");
+}
+
+cudaError_t checkCuda(cudaError_t result) {
+    if (result != cudaSuccess) {
+        fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
+        assert(result == cudaSuccess);
+    }
+    return result;
+}
+
 /**
  * @brief Allocate a 2D array that is addressable using square brackets
  * 
@@ -57,8 +70,9 @@ double **alloc_2d_array(int m, int n) {
   	double **x;
   	int i;
 
-  	x = (double **)malloc(m*sizeof(double *));
-  	x[0] = (double *)calloc(m*n,sizeof(double));
+	checkCuda(cudaMallocManaged(&x, m * sizeof(double*)));
+	checkCuda(cudaMallocManaged(&x[0], m * n * sizeof(double)));
+
   	for ( i = 1; i < m; i++ )
     	x[i] = &x[0][i*n];
 	return x;
@@ -76,8 +90,8 @@ char **alloc_2d_char_array(int m, int n) {
   	char **x;
   	int i;
 
-  	x = (char **)malloc(m*sizeof(char *));
-  	x[0] = (char *)calloc(m*n,sizeof(char));
+	checkCuda(cudaMallocManaged(&x, m * sizeof(char*)));
+	checkCuda(cudaMallocManaged(&x[0], m * n * sizeof(char)));
   	for ( i = 1; i < m; i++ )
     	x[i] = &x[0][i*n];
 	return x;
@@ -89,6 +103,6 @@ char **alloc_2d_char_array(int m, int n) {
  * @param array The 2D array to free
  */
 void free_2d_array(void ** array) {
-	free(array[0]);
-	free(array);
+	cudaFree(array[0]);
+	cudaFree(array);
 }
