@@ -272,6 +272,7 @@ void set_timestep_interval() {
 
 void main_loop() {
     double res, t;
+    int block_dim = 512;
 
     /* Main loop */
     int iters = 0;
@@ -279,18 +280,23 @@ void main_loop() {
         if (!fixed_dt)
             set_timestep_interval();
 
-        compute_tentative_velocity<<<1, 1>>>(u, v, flag, f, g, imax, jmax, y, delx, dely, del_t, Re);
+        compute_tentative_velocity<<<1, block_dim>>>(u, v, flag, f, g, imax, jmax, y, delx, dely, del_t, Re);
 
-        compute_rhs<<<1, 1>>>(flag, f, g, rhs, imax, jmax, delx, dely, del_t);
+        compute_rhs<<<1, block_dim>>>(flag, f, g, rhs, imax, jmax, delx, dely, del_t);
 
         //res = poisson();
-        poisson<<<1, 128>>>(u, v, p, flag, rhs, imax, jmax, fluid_cells, itermax, omega, beta_2, rdx2, rdy2, eps);
+        poisson<<<1, block_dim>>>(u, v, p, flag, rhs, imax, jmax, fluid_cells, itermax, omega, beta_2, rdx2, rdy2, eps);
 
-        update_velocity<<<1, 1>>>(u, v, p, flag, f, g, imax, jmax, delx, dely, del_t);
+        update_velocity<<<1, block_dim>>>(u, v, p, flag, f, g, imax, jmax, delx, dely, del_t);
 
-        apply_boundary_conditions<<<1, 1>>>(u, v, flag, imax, jmax, ui, vi);
+        apply_boundary_conditions<<<1, block_dim>>>(u, v, flag, imax, jmax, ui, vi);
 
         if ((iters % output_freq == 0)) {
+            //TODO: find out why either cudaDeviceSynchronize or cudaLaunchKernel takes so long
+            /*
+            I think this is because there is a lot of cpu to gpu kernel calls,
+            so find a way to have this main func be just 1 kernel call. Good luck
+            */
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: \n", iters, t+del_t, del_t);
 
             if ((!no_output) && (enable_checkpoints))
