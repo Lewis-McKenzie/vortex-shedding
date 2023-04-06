@@ -8,7 +8,7 @@
  * the u and v velocities. Also enforce the boundary conditions at the
  * edges of the matrix.
  */
-__device__ void apply_boundary_conditions(double **u, double **v, char **flag, int imax, int jmax, double ui, double vi) {
+__device__ void apply_boundary_conditions(double **u, double **v, char **flag, int imax, int jmax) {
     int i, i_end;
     init_outer_loop(i, i_end, 2);
     

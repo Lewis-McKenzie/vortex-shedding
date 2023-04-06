@@ -19,7 +19,7 @@ double get_time() {
 	return (double) (timer.tv_sec + timer.tv_nsec / 1000000000.0);
 }
 
-#define time(func, timer) if(print_time){timer = get_time();func;timer = get_time() - timer;}else{func;}
+#define time(func, timer) if(print_time && threadIdx.x == 0){timer = get_time();func;timer = get_time() - timer;}else{func;}
 
 #define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
 
@@ -27,22 +27,21 @@ double get_time() {
 
 #define debug_cuda(i, limit) printf("thread: %d out of %d on block %d. start: %d end: %d\n", threadIdx.x, blockDim.x, blockIdx.x, i, limit);
 
-__device__ double reduce_sum(double value, double *reduction_buffer) {
+__device__ double block_reduce_sum(double value, double *reduction_buffer) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     reduction_buffer[tid] = value;
+    __shared__ double sum;
+    sum = 0;
     __syncthreads();
 
     if (tid == 0) {
-        double sum = 0;
+        double local_sum = 0;
         for (int i = 0; i < gridDim.x * blockDim.x; i++) {
             sum += reduction_buffer[i];
         }
-        for (int i = 0; i < gridDim.x * blockDim.x; i++) {
-            reduction_buffer[i] = sum;
-        }
     }
     __syncthreads();
-    return reduction_buffer[tid];
+    return sum;
 }
 
 
@@ -51,7 +50,7 @@ __device__ double reduce_sum(double value, double *reduction_buffer) {
  * @brief Computation of tentative velocity field (f, g)
  * 
  */
-__device__ void compute_tentative_velocity(double** u, double **v, char **flag, double **f, double **g, int imax, int jmax, double y, double delx, double dely, double del_t) {
+__device__ void compute_tentative_velocity(double** u, double **v, char **flag, double **f, double **g, int imax, int jmax, double del_t) {
     int i, i_end;
     init_outer_loop(i, i_end, 0);
     //debug_cuda(i, i_end);
@@ -126,7 +125,7 @@ __device__ void compute_tentative_velocity(double** u, double **v, char **flag, 
  * @brief Calculate the right hand side of the pressure equation 
  * 
  */
-__device__ void compute_rhs(char **flag, double **f, double **g, double **rhs, int imax, int jmax, double delx, double dely, double del_t) {
+__device__ void compute_rhs(char **flag, double **f, double **g, double **rhs, int imax, int jmax, double del_t) {
     int i, i_end;
     init_outer_loop(i, i_end, 1);
     for (; i < i_end; i++) {
@@ -149,7 +148,7 @@ int grid_dim = 1;
  * @return Calculated residual of the computation
  * 
  */
-__device__ double poisson(double **u, double **v, double **p, char **flag, double **rhs, int imax, int jmax, int fluid_cells, double omega, double beta_2, double rdx2, double rdy2, double *reduction_buffer) {
+__device__ double poisson(double **u, double **v, double **p, char **flag, double **rhs, int imax, int jmax, double *reduction_buffer) {
 
     double p0 = 0.0;
     /* Calculate sum of squares */
@@ -160,7 +159,7 @@ __device__ double poisson(double **u, double **v, double **p, char **flag, doubl
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
         }
     }
-    p0 = reduce_sum(p0, reduction_buffer);
+    p0 = block_reduce_sum(p0, reduction_buffer);
    
     p0 = sqrt(p0 / fluid_cells); 
     if (p0 < 0.0001) { p0 = 1.0; }
@@ -219,7 +218,7 @@ __device__ double poisson(double **u, double **v, double **p, char **flag, doubl
                 }
             }
         }
-        res = reduce_sum(res, reduction_buffer);
+        res = block_reduce_sum(res, reduction_buffer);
         res = sqrt(res / fluid_cells) / p0;
         
         /* convergence? */
@@ -262,7 +261,7 @@ __device__ void update_velocity(double **u, double **v, double **p, char ** flag
  * @brief Set the timestep size so that we satisfy the Courant-Friedrichs-Lewy
  * conditions. Otherwise the simulation becomes unstable.
  */
-void set_timestep_interval() {
+__device__ double set_timestep_interval(double **u, double **v, int imax, int jmax, double del_t) {
     /* del_t satisfying CFL conditions */
     if (tau >= 1.0e-10) { /* else no time stepsize control */
         double umax = 1.0e-10;
@@ -291,30 +290,29 @@ void set_timestep_interval() {
         }
         del_t = tau * del_t; /* multiply by safety factor */
     }
+    return del_t;
 }
 
 
-__global__ void main_loop(double **u, double **v, double **p, char **flag, double **f, double **g, double **rhs, int imax, int jmax, double ui, double vi, double delx, double dely, double del_t, int fluid_cells, double omega, double beta_2, double rdx2, double rdy2, double t_end, int fixed_dt, double y, int output_freq, int no_output, int enable_checkpoints, double *reduction_buffer) {
-    double res, t;
-
-	apply_boundary_conditions(u, v, flag, imax, jmax, ui, vi);
+__global__ void main_loop(double **u, double **v, double **p, char **flag, double **f, double **g, double **rhs, int imax, int jmax, double del_t, double t_end, int fixed_dt, int output_freq, int no_output, int enable_checkpoints, double *reduction_buffer) {
+    double res, t, ten_t, rhs_t, pois_t, vel_t, bound_t;
 
     /* Main loop */
     int iters = 0;
     for (t = 0.0; t < t_end; t += del_t, iters++) {
         if (!fixed_dt) {
-            //set_timestep_interval();
+            del_t = set_timestep_interval(u, v, imax, jmax, del_t);
         }
 
-        compute_tentative_velocity(u, v, flag, f, g, imax, jmax, y, delx, dely, del_t);
+        (compute_tentative_velocity(u, v, flag, f, g, imax, jmax, del_t), ten_t);
 
-        compute_rhs(flag, f, g, rhs, imax, jmax, delx, dely, del_t);
+        (compute_rhs(flag, f, g, rhs, imax, jmax, del_t), rhs_t);
 
-        res = poisson(u, v, p, flag, rhs, imax, jmax, fluid_cells, omega, beta_2, rdx2, rdy2, reduction_buffer);
+        (res = poisson(u, v, p, flag, rhs, imax, jmax, reduction_buffer), pois_t);
 
-        update_velocity(u, v, p, flag, f, g, imax, jmax, delx, dely, del_t);
+        (update_velocity(u, v, p, flag, f, g, imax, jmax, delx, dely, del_t), vel_t);
 
-        apply_boundary_conditions(u, v, flag, imax, jmax, ui, vi);
+        (apply_boundary_conditions(u, v, flag, imax, jmax), bound_t);
 
         if ((iters % output_freq == 0) && blockIdx.x == 0 && threadIdx.x == 0) {
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
@@ -345,16 +343,18 @@ int main(int argc, char *argv[]) {
     setup_time = get_time();
     set_defaults();
     parse_args(argc, argv);
-    setup();
+    setup<<<1, 1>>>(imax, jmax);
+    cudaDeviceSynchronize();
 
     if (verbose) print_opts();
 
     allocate_arrays();
-    problem_set_up();
+    problem_set_up<<<1, 1>>>(u, v, p, flag, imax, jmax);
+    cudaDeviceSynchronize();
     setup_time = get_time() - setup_time;
     print_timer("Setup", setup_time);
 
-    main_loop<<<grid_dim, block_dim>>>(u, v, p, flag, f, g, rhs, imax, jmax, ui, vi, delx, dely, del_t, fluid_cells, omega, beta_2, rdx2, rdy2, t_end, fixed_dt, y, output_freq, no_output, enable_checkpoints, reduction_buffer);
+    main_loop<<<grid_dim, block_dim>>>(u, v, p, flag, f, g, rhs, imax, jmax, del_t, t_end, fixed_dt, output_freq, no_output, enable_checkpoints, reduction_buffer);
     cudaDeviceSynchronize();
 
     if (!no_output) {

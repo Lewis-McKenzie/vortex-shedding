@@ -2,9 +2,9 @@
 #define SETUP_H
 
 void set_defaults();
-void setup();
+__global__ void setup(int imax, int jmax);
 void allocate_arrays();
 void free_arrays();
-void problem_set_up();
+__global__ void problem_set_up(double **u, double **v, double **p, char ** flag, int imax, int jmax) ;
 
 #endif

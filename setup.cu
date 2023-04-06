@@ -17,7 +17,7 @@ void set_defaults() {
  * @brief Set up some values after arguments have been parsed.
  * 
  */
-void setup() {
+__global__ void setup(int imax, int jmax) {
 	delx = xlength/imax;
     dely = ylength/jmax;
     rdx2 = 1.0 / (delx * delx);
@@ -46,6 +46,8 @@ void allocate_arrays() {
     flag_size_x = imax+2; flag_size_y = jmax+2;
     flag = alloc_2d_char_array(flag_size_x, flag_size_y);
 
+    checkCuda(cudaMallocManaged(&reduction_buffer, block_dim * grid_dim * sizeof(double)));
+
     if (!u || !v || !f || !g || !p || !rhs || !flag) {
         fprintf(stderr, "Couldn't allocate memory for matrices.\n");
 		exit(1);
@@ -66,31 +68,12 @@ void free_arrays() {
     free_2d_array((void**) flag);
 }
 
-void prefetch() {
-    int device = -1;
-    checkCuda(cudaGetDevice(&device));
-    checkCuda(cudaMemPrefetchAsync(u, u_size_y * sizeof(double*), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(v, v_size_y * sizeof(double*), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(f, f_size_y * sizeof(double*), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(g, g_size_y * sizeof(double*), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(p, p_size_y * sizeof(double*), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(rhs, rhs_size_y * sizeof(double*), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(flag, flag_size_y * sizeof(char*), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(u[0], u_size_y * u_size_x * sizeof(double), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(v[0], v_size_y * v_size_x * sizeof(double), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(f[0], f_size_y * f_size_x * sizeof(double), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(g[0], g_size_y * g_size_x * sizeof(double), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(p[0], p_size_y * p_size_x * sizeof(double), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(rhs[0], rhs_size_y * rhs_size_x * sizeof(double), device, NULL));
-    checkCuda(cudaMemPrefetchAsync(flag[0], flag_size_y * flag_size_x * sizeof(char), device, NULL));
-}
-
 /**
  * @brief Initialise the velocity arrays and then initialize the flag array, 
  * marking any obstacle cells and the edge cells as boundaries. The cells 
  * adjacent to boundary cells have their relevant flags set too.
  */
-void problem_set_up() {
+__global__ void problem_set_up(double **u, double **v, double **p, char ** flag, int imax, int jmax) {
     for (int i = 0; i < imax+2; i++) {
         for (int j = 0; j < jmax+2; j++) {
             u[i][j] = ui;
@@ -136,8 +119,5 @@ void problem_set_up() {
             }
         }
     }
-
-    checkCuda(cudaMallocManaged(&reduction_buffer, block_dim * grid_dim * sizeof(double)));
-
-    prefetch();
+	apply_boundary_conditions(u, v, flag, imax, jmax);
 }
