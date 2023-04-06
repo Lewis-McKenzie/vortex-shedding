@@ -28,20 +28,20 @@ double get_time() {
 #define debug_cuda(i, limit) printf("thread: %d out of %d on block %d. start: %d end: %d\n", threadIdx.x, blockDim.x, blockIdx.x, i, limit);
 
 __device__ double block_reduce_sum(double value, double *reduction_buffer) {
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    int tid = threadIdx.x;
     reduction_buffer[tid] = value;
     __shared__ double sum;
     sum = 0;
     __syncthreads();
+    
+    for (int s=blockDim.x/2; s>0; s>>=1) {
+        if (tid < s)
+            reduction_buffer[tid] += reduction_buffer[tid + s];
 
-    if (tid == 0) {
-        double local_sum = 0;
-        for (int i = 0; i < gridDim.x * blockDim.x; i++) {
-            sum += reduction_buffer[i];
-        }
+        __syncthreads();
     }
-    __syncthreads();
-    return sum;
+
+    return reduction_buffer[0];
 }
 
 
