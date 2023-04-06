@@ -5,31 +5,35 @@
 #include <assert.h>
 
 #include "vtk.cuh"
-#include "data.cuh"
 
-double xlength = 4.0;     /* Width of simulated domain */
-double ylength = 1.0;     /* Height of simulated domain */
-int imax = 512;           /* Number of cells horizontally */
-int jmax = 128;           /* Number of cells vertically */
+double xlength = 4.0;     			  /* Width of simulated domain */
+double ylength = 1.0;     			  /* Height of simulated domain */
+int imax = 512;           			  /* Number of cells horizontally */
+int jmax = 128;           			  /* Number of cells vertically */
 
-double t_end = 5.0;        /* Simulation runtime */
-double del_t = 0.003;      /* Duration of each timestep */
-double tau = 0.5;          /* Safety factor for timestep control */
+double t_end = 5.0;        			  /* Simulation runtime */
+double del_t = 0.003;      			  /* Duration of each timestep */
+double tau = 0.5;          			  /* Safety factor for timestep control */
 
-int itermax = 100;         /* Maximum number of iterations in SOR */
-double eps = 0.001;        /* Stopping error threshold for SOR */
-double omega = 1.7;        /* Relaxation parameter for SOR */
-double y = 0.9;            /* Gamma, Upwind differencing factor in PDE discretisation */
+__device__ int itermax = 100;         /* Maximum number of iterations in SOR */
+__device__ double eps = 0.001;        /* Stopping error threshold for SOR */
+double omega = 1.7;        			  /* Relaxation parameter for SOR */
+double y = 0.9;            			  /* Gamma, Upwind differencing factor in PDE discretisation */
 
-double Re = 500.0;         /* Reynolds number */
-double ui = 1.0;           /* Initial X velocity */
-double vi = 0.0;           /* Initial Y velocity */
+__device__ double Re = 500.0;         /* Reynolds number */
+double ui = 1.0;           			  /* Initial X velocity */
+double vi = 0.0;           			  /* Initial Y velocity */
 
 double delx, dely;
 double rdx2, rdy2;
 double beta_2;
 
 int fluid_cells = 0;
+
+int block_dim = 512;
+int grid_dim = 1;
+
+double *reduction_buffer;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 int u_size_x, u_size_y;

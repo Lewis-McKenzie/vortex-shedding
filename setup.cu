@@ -137,6 +137,7 @@ void problem_set_up() {
         }
     }
 
+    checkCuda(cudaMallocManaged(&reduction_buffer, block_dim * grid_dim * sizeof(double)));
+
     prefetch();
-	apply_boundary_conditions<<<1, 1>>>(u, v, flag, imax, jmax, ui, vi);
 }

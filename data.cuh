@@ -23,12 +23,12 @@ extern double t_end;       /* Simulation runtime */
 extern double del_t;       /* Duration of each timestep */
 extern double tau;         /* Safety factor for timestep control */
 
-extern int itermax;        /* Maximum number of iterations in SOR */
-extern double eps;         /* Stopping error threshold for SOR */
+extern __device__ int itermax;        /* Maximum number of iterations in SOR */
+extern __device__ double eps;         /* Stopping error threshold for SOR */
 extern double omega;       /* Relaxation parameter for SOR */
 extern double y;           /* Gamma, Upwind differencing factor in PDE */
 
-extern double Re;          /* Reynolds number */
+extern __device__ double Re;          /* Reynolds number */
 extern double ui;          /* Initial X velocity */
 extern double vi;          /* Initial Y velocity */
 
@@ -37,6 +37,11 @@ extern int fluid_cells;
 extern double delx, dely;
 extern double rdx2, rdy2;
 extern double beta_2;
+
+extern int block_dim;
+extern int grid_dim;
+
+extern double *reduction_buffer;
 
 // Grids used for veclocities, pressure, rhs, flag and temporary f and g arrays
 extern int u_size_x, u_size_y;

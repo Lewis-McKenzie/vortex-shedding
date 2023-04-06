@@ -26,11 +26,32 @@ double get_time() {
 #define init_outer_loop(i, limit, addon) i = threadIdx.x * (imax+2) / blockDim.x;limit = (threadIdx.x+1) * (imax+2) / blockDim.x;if (i == 0) {i = 1;} else if (limit > imax+addon) {i_end = imax+addon;}
 
 #define debug_cuda(i, limit) printf("thread: %d out of %d on block %d. start: %d end: %d\n", threadIdx.x, blockDim.x, blockIdx.x, i, limit);
+
+__device__ double reduce_sum(double value, double *reduction_buffer) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    reduction_buffer[tid] = value;
+    __syncthreads();
+
+    if (tid == 0) {
+        double sum = 0;
+        for (int i = 0; i < gridDim.x * blockDim.x; i++) {
+            sum += reduction_buffer[i];
+        }
+        for (int i = 0; i < gridDim.x * blockDim.x; i++) {
+            reduction_buffer[i] = sum;
+        }
+    }
+    __syncthreads();
+    return reduction_buffer[tid];
+}
+
+
+
 /**
  * @brief Computation of tentative velocity field (f, g)
  * 
  */
-__global__ void compute_tentative_velocity(double** u, double **v, char **flag, double **f, double **g, int imax, int jmax, double y, double delx, double dely, double del_t, double Re) {
+__device__ void compute_tentative_velocity(double** u, double **v, char **flag, double **f, double **g, int imax, int jmax, double y, double delx, double dely, double del_t) {
     int i, i_end;
     init_outer_loop(i, i_end, 0);
     //debug_cuda(i, i_end);
@@ -105,7 +126,7 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
  * @brief Calculate the right hand side of the pressure equation 
  * 
  */
-__global__ void compute_rhs(char **flag, double **f, double **g, double **rhs, int imax, int jmax, double delx, double dely, double del_t) {
+__device__ void compute_rhs(char **flag, double **f, double **g, double **rhs, int imax, int jmax, double delx, double dely, double del_t) {
     int i, i_end;
     init_outer_loop(i, i_end, 1);
     for (; i < i_end; i++) {
@@ -121,13 +142,14 @@ __global__ void compute_rhs(char **flag, double **f, double **g, double **rhs, i
 }
 
 
-/**
+/**int block_dim = 16;
+int grid_dim = 1;
  * @brief Red/Black SOR to solve the poisson equation.
  * 
  * @return Calculated residual of the computation
  * 
  */
-__global__ void poisson(double **u, double **v, double **p, char **flag, double **rhs, int imax, int jmax, int fluid_cells, int itermax, double omega, double beta_2, double rdx2, double rdy2, double eps) {
+__device__ double poisson(double **u, double **v, double **p, char **flag, double **rhs, int imax, int jmax, int fluid_cells, double omega, double beta_2, double rdx2, double rdy2, double *reduction_buffer) {
 
     double p0 = 0.0;
     /* Calculate sum of squares */
@@ -138,6 +160,7 @@ __global__ void poisson(double **u, double **v, double **p, char **flag, double 
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
         }
     }
+    p0 = reduce_sum(p0, reduction_buffer);
    
     p0 = sqrt(p0 / fluid_cells); 
     if (p0 < 0.0001) { p0 = 1.0; }
@@ -196,13 +219,14 @@ __global__ void poisson(double **u, double **v, double **p, char **flag, double 
                 }
             }
         }
+        res = reduce_sum(res, reduction_buffer);
         res = sqrt(res / fluid_cells) / p0;
         
         /* convergence? */
         if (res < eps) break;
     }
 
-    //return res;
+    return res;
 }
 
 
@@ -210,7 +234,7 @@ __global__ void poisson(double **u, double **v, double **p, char **flag, double 
  * @brief Update the velocity values based on the tentative
  * velocity values and the new pressure matrix
  */
-__global__ void update_velocity(double **u, double **v, double **p, char ** flag, double **f, double **g, int imax, int jmax, double delx, double dely, double del_t) {
+__device__ void update_velocity(double **u, double **v, double **p, char ** flag, double **f, double **g, int imax, int jmax, double delx, double dely, double del_t) {
     int i, i_end;
     init_outer_loop(i, i_end, -2);
     for (; i < i_end; i++) {
@@ -270,47 +294,41 @@ void set_timestep_interval() {
 }
 
 
-void main_loop() {
+__global__ void main_loop(double **u, double **v, double **p, char **flag, double **f, double **g, double **rhs, int imax, int jmax, double ui, double vi, double delx, double dely, double del_t, int fluid_cells, double omega, double beta_2, double rdx2, double rdy2, double t_end, int fixed_dt, double y, int output_freq, int no_output, int enable_checkpoints, double *reduction_buffer) {
     double res, t;
-    int block_dim = 512;
+
+	apply_boundary_conditions(u, v, flag, imax, jmax, ui, vi);
 
     /* Main loop */
     int iters = 0;
     for (t = 0.0; t < t_end; t += del_t, iters++) {
-        if (!fixed_dt)
-            set_timestep_interval();
+        if (!fixed_dt) {
+            //set_timestep_interval();
+        }
 
-        compute_tentative_velocity<<<1, block_dim>>>(u, v, flag, f, g, imax, jmax, y, delx, dely, del_t, Re);
+        compute_tentative_velocity(u, v, flag, f, g, imax, jmax, y, delx, dely, del_t);
 
-        compute_rhs<<<1, block_dim>>>(flag, f, g, rhs, imax, jmax, delx, dely, del_t);
+        compute_rhs(flag, f, g, rhs, imax, jmax, delx, dely, del_t);
 
-        //res = poisson();
-        poisson<<<1, block_dim>>>(u, v, p, flag, rhs, imax, jmax, fluid_cells, itermax, omega, beta_2, rdx2, rdy2, eps);
+        res = poisson(u, v, p, flag, rhs, imax, jmax, fluid_cells, omega, beta_2, rdx2, rdy2, reduction_buffer);
 
-        update_velocity<<<1, block_dim>>>(u, v, p, flag, f, g, imax, jmax, delx, dely, del_t);
+        update_velocity(u, v, p, flag, f, g, imax, jmax, delx, dely, del_t);
 
-        apply_boundary_conditions<<<1, block_dim>>>(u, v, flag, imax, jmax, ui, vi);
+        apply_boundary_conditions(u, v, flag, imax, jmax, ui, vi);
 
-        if ((iters % output_freq == 0)) {
-            //TODO: find out why either cudaDeviceSynchronize or cudaLaunchKernel takes so long
-            /*
-            I think this is because there is a lot of cpu to gpu kernel calls,
-            so find a way to have this main func be just 1 kernel call. Good luck
-            */
-            printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: \n", iters, t+del_t, del_t);
+        if ((iters % output_freq == 0) && blockIdx.x == 0 && threadIdx.x == 0) {
+            printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
 
-            if ((!no_output) && (enable_checkpoints))
-                cudaDeviceSynchronize();
-                write_checkpoint(iters, t+del_t);
+            if ((!no_output) && (enable_checkpoints)) {
+                //write_checkpoint(iters, t+del_t);
+            }
         }
     } /* End of main loop */
 
-    cudaDeviceSynchronize();
-    printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
-    printf("Simulation complete.\n");
-
-    if (!no_output)
-        write_result(iters, t);
+    if (blockIdx.x == 0 && threadIdx.x == 0) {
+        printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
+        printf("Simulation complete.\n");
+    }
 }
 
 
@@ -322,7 +340,7 @@ void main_loop() {
  * @return int The return value of the application
  */
 int main(int argc, char *argv[]) {
-    double setup_time, main_loop_time;
+    double setup_time;
 
     setup_time = get_time();
     set_defaults();
@@ -336,8 +354,12 @@ int main(int argc, char *argv[]) {
     setup_time = get_time() - setup_time;
     print_timer("Setup", setup_time);
 
-    time(main_loop(), main_loop_time);
-    print_timer("Main loop", main_loop_time);
+    main_loop<<<grid_dim, block_dim>>>(u, v, p, flag, f, g, rhs, imax, jmax, ui, vi, delx, dely, del_t, fluid_cells, omega, beta_2, rdx2, rdy2, t_end, fixed_dt, y, output_freq, no_output, enable_checkpoints, reduction_buffer);
+    cudaDeviceSynchronize();
+
+    if (!no_output) {
+        write_result(2000, 5);
+    }
 
     free_arrays();
 
