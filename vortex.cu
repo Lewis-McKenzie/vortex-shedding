@@ -60,7 +60,7 @@ __global__ void block_reduce_sum_buffer(double *reduction_buffer) {
  * @brief Computation of tentative velocity field (f, g)
  * 
  */
-__global__ void compute_tentative_velocity(double** u, double **v, char **flag, double **f, double **g, int imax, int jmax, double del_t) {
+__global__ void compute_tentative_velocity(double** u, double **v, char **flag, double **f, double **g, int imax, int jmax, double del_t, double Re, double delx, double dely) {
     int i, i_end;
     init_outer_loop(i, i_end, 0);
     //debug_cuda(i, i_end);
@@ -124,7 +124,7 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
         }
     }
     init_outer_loop(i, i_end, 1);
-    for (i; i < i_end; i++) {
+    for (; i < i_end; i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
     }
@@ -135,7 +135,7 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
  * @brief Calculate the right hand side of the pressure equation 
  * 
  */
-__global__ void compute_rhs(char **flag, double **f, double **g, double **rhs, int imax, int jmax, double del_t) {
+__global__ void compute_rhs(char **flag, double **f, double **g, double **rhs, int imax, int jmax, double del_t, double delx, double dely) {
     int i, i_end;
     init_outer_loop(i, i_end, 1);
     for (; i < i_end; i++) {
@@ -233,6 +233,7 @@ double poisson() {
 
     init_p0<<<grid_dim, block_dim>>>(p, flag, imax, jmax, reduction_buffer);
     block_reduce_sum_buffer<<<grid_dim, block_dim>>>(reduction_buffer);
+    cudaDeviceSynchronize();
    
     double p0 = sqrt(reduction_buffer[0] / fluid_cells); 
     if (p0 < 0.0001) { p0 = 1.0; }
@@ -261,7 +262,7 @@ double poisson() {
  * @brief Update the velocity values based on the tentative
  * velocity values and the new pressure matrix
  */
-__global__ void update_velocity(double **u, double **v, double **p, char ** flag, double **f, double **g, int imax, int jmax, double del_t) {
+__global__ void update_velocity(double **u, double **v, double **p, char ** flag, double **f, double **g, int imax, int jmax, double del_t, double delx, double dely) {
     int i, i_end;
     init_outer_loop(i, i_end, -2);
     for (; i < i_end; i++) {
@@ -333,13 +334,13 @@ void main_loop() {
             set_timestep_interval();
         }
 
-        (compute_tentative_velocity<<<grid_dim, block_dim>>>(u, v, flag, f, g, imax, jmax, del_t), ten_t);
+        (compute_tentative_velocity<<<grid_dim, block_dim>>>(u, v, flag, f, g, imax, jmax, del_t, Re, delx, dely), ten_t);
 
-        (compute_rhs<<<grid_dim, block_dim>>>(flag, f, g, rhs, imax, jmax, del_t), rhs_t);
+        (compute_rhs<<<grid_dim, block_dim>>>(flag, f, g, rhs, imax, jmax, del_t, delx, dely), rhs_t);
 
         (res = poisson(), pois_t);
 
-        (update_velocity<<<grid_dim, block_dim>>>(u, v, p, flag, f, g, imax, jmax, del_t), vel_t);
+        (update_velocity<<<grid_dim, block_dim>>>(u, v, p, flag, f, g, imax, jmax, del_t, delx, dely), vel_t);
 
         (apply_boundary_conditions<<<grid_dim, block_dim>>>(u, v, flag, imax, jmax), bound_t);
 
@@ -351,6 +352,8 @@ void main_loop() {
                 write_checkpoint(iters, t+del_t);
             }
         }
+        if (iters == 100)
+            break;
     } /* End of main loop */
 
     printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
@@ -375,7 +378,7 @@ int main(int argc, char *argv[]) {
     setup_time = get_time();
     set_defaults();
     parse_args(argc, argv);
-    setup<<<1, 1>>>(imax, jmax);
+    setup();
     cudaDeviceSynchronize();
 
     if (verbose) print_opts();

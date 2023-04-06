@@ -14,8 +14,8 @@
 
 #define C_F      0x0010    /* This cell is a fluid cell */
 
-extern __device__ double xlength;     /* Width of simulated domain */
-extern __device__ double ylength;     /* Height of simulated domain */
+extern double xlength;     /* Width of simulated domain */
+extern double ylength;     /* Height of simulated domain */
 extern int imax;           /* Number of cells horizontally */
 extern int jmax;           /* Number of cells vertically */
 
@@ -28,13 +28,13 @@ extern double eps;         /* Stopping error threshold for SOR */
 extern __device__ double omega;       /* Relaxation parameter for SOR */
 extern __device__ double y;           /* Gamma, Upwind differencing factor in PDE */
 
-extern __device__ double Re;          /* Reynolds number */
+extern double Re;          /* Reynolds number */
 extern __device__ double ui;          /* Initial X velocity */
 extern __device__ double vi;          /* Initial Y velocity */
 
 extern int fluid_cells;
 
-extern __device__ double delx, dely;
+extern double delx, dely;
 extern __device__ double rdx2, rdy2;
 extern __device__ double beta_2;
 

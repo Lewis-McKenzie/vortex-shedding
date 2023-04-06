@@ -6,8 +6,8 @@
 
 #include "vtk.cuh"
 
-__device__ double xlength = 4.0;     			  /* Width of simulated domain */
-__device__ double ylength = 1.0;     			  /* Height of simulated domain */
+double xlength = 4.0;     			  /* Width of simulated domain */
+double ylength = 1.0;     			  /* Height of simulated domain */
 int imax = 512;           			  /* Number of cells horizontally */
 int jmax = 128;           			  /* Number of cells vertically */
 
@@ -20,11 +20,11 @@ double eps = 0.001;        /* Stopping error threshold for SOR */
 __device__ double omega = 1.7;        			  /* Relaxation parameter for SOR */
 __device__ double y = 0.9;            			  /* Gamma, Upwind differencing factor in PDE discretisation */
 
-__device__ double Re = 500.0;         /* Reynolds number */
+double Re = 500.0;         /* Reynolds number */
 __device__ double ui = 1.0;           			  /* Initial X velocity */
 __device__ double vi = 0.0;           			  /* Initial Y velocity */
 
-__device__ double delx, dely;
+double delx, dely;
 __device__ double rdx2, rdy2;
 __device__ double beta_2;
 

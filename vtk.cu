@@ -14,7 +14,7 @@ char result_filename[1024];
  * 
  */
 void set_default_base() {
-    set_basename("out/vortex");
+    set_basename((char*)"out/vortex");
 }
 
 /**

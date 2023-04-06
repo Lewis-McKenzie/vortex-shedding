@@ -17,13 +17,18 @@ void set_defaults() {
  * @brief Set up some values after arguments have been parsed.
  * 
  */
-__global__ void setup(int imax, int jmax) {
-	delx = xlength/imax;
-    dely = ylength/jmax;
+__global__ void cuda_setup(int imax, int jmax, double delx, double dely) {
     rdx2 = 1.0 / (delx * delx);
     rdy2 = 1.0 / (dely * dely);
     beta_2 = -omega / (2.0 * (rdx2 + rdy2));
 }
+
+void setup() {
+	delx = xlength/imax;
+    dely = ylength/jmax;
+    cuda_setup<<<1, 1>>>(imax, jmax, delx, dely);
+}
+
  
 /**
  * @brief Allocate all of the arrays used by the computation.
@@ -81,6 +86,12 @@ __global__ void cuda_setup(double **u, double **v, double **p, char ** flag, int
             p[i][j] = 0.0;
         }
     }
+}
+
+void problem_set_up() {
+    
+    cuda_setup<<<1, 1>>>(u, v, p, flag, imax, jmax);
+    cudaDeviceSynchronize();
 
     /* Mark a circular obstacle as boundary cells, the rest as fluid */
     double mx = 20.0 / 41.0 * jmax * dely;
@@ -104,12 +115,7 @@ __global__ void cuda_setup(double **u, double **v, double **p, char ** flag, int
         flag[0][j]      = C_B;
         flag[imax+1][j] = C_B;
     }	
-}
 
-void problem_set_up() {
-
-    cuda_setup<<<1, 1>>>(u, v, p, flag, imax, jmax);
-    cudaDeviceSynchronize();
 
     fluid_cells = imax * jmax;
 
