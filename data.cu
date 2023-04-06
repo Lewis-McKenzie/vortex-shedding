@@ -13,10 +13,10 @@ int jmax = 128;           			  /* Number of cells vertically */
 
 double t_end = 5.0;        			  /* Simulation runtime */
 double del_t = 0.003;      			  /* Duration of each timestep */
-__device__ double tau = 0.5;          			  /* Safety factor for timestep control */
+double tau = 0.5;          			  /* Safety factor for timestep control */
 
-__device__ int itermax = 100;         /* Maximum number of iterations in SOR */
-__device__ double eps = 0.001;        /* Stopping error threshold for SOR */
+int itermax = 100;         /* Maximum number of iterations in SOR */
+double eps = 0.001;        /* Stopping error threshold for SOR */
 __device__ double omega = 1.7;        			  /* Relaxation parameter for SOR */
 __device__ double y = 0.9;            			  /* Gamma, Upwind differencing factor in PDE discretisation */
 
@@ -28,7 +28,7 @@ __device__ double delx, dely;
 __device__ double rdx2, rdy2;
 __device__ double beta_2;
 
-__device__ int fluid_cells = 0;
+int fluid_cells = 0;
 
 int block_dim = 512;
 int grid_dim = 1;

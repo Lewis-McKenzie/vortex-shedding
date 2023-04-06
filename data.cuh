@@ -21,10 +21,10 @@ extern int jmax;           /* Number of cells vertically */
 
 extern double t_end;       /* Simulation runtime */
 extern double del_t;       /* Duration of each timestep */
-extern __device__ double tau;         /* Safety factor for timestep control */
+extern double tau;         /* Safety factor for timestep control */
 
-extern __device__ int itermax;        /* Maximum number of iterations in SOR */
-extern __device__ double eps;         /* Stopping error threshold for SOR */
+extern int itermax;        /* Maximum number of iterations in SOR */
+extern double eps;         /* Stopping error threshold for SOR */
 extern __device__ double omega;       /* Relaxation parameter for SOR */
 extern __device__ double y;           /* Gamma, Upwind differencing factor in PDE */
 
@@ -32,7 +32,7 @@ extern __device__ double Re;          /* Reynolds number */
 extern __device__ double ui;          /* Initial X velocity */
 extern __device__ double vi;          /* Initial Y velocity */
 
-extern __device__ int fluid_cells;
+extern int fluid_cells;
 
 extern __device__ double delx, dely;
 extern __device__ double rdx2, rdy2;

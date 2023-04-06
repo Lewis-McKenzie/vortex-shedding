@@ -73,7 +73,7 @@ void free_arrays() {
  * marking any obstacle cells and the edge cells as boundaries. The cells 
  * adjacent to boundary cells have their relevant flags set too.
  */
-__global__ void problem_set_up(double **u, double **v, double **p, char ** flag, int imax, int jmax) {
+__global__ void cuda_setup(double **u, double **v, double **p, char ** flag, int imax, int jmax) {
     for (int i = 0; i < imax+2; i++) {
         for (int j = 0; j < jmax+2; j++) {
             u[i][j] = ui;
@@ -103,7 +103,13 @@ __global__ void problem_set_up(double **u, double **v, double **p, char ** flag,
     for (int j = 1; j <= jmax; j++) {
         flag[0][j]      = C_B;
         flag[imax+1][j] = C_B;
-    }
+    }	
+}
+
+void problem_set_up() {
+
+    cuda_setup<<<1, 1>>>(u, v, p, flag, imax, jmax);
+    cudaDeviceSynchronize();
 
     fluid_cells = imax * jmax;
 
@@ -119,5 +125,4 @@ __global__ void problem_set_up(double **u, double **v, double **p, char ** flag,
             }
         }
     }
-	apply_boundary_conditions(u, v, flag, imax, jmax);
 }

@@ -5,6 +5,7 @@ void set_defaults();
 __global__ void setup(int imax, int jmax);
 void allocate_arrays();
 void free_arrays();
-__global__ void problem_set_up(double **u, double **v, double **p, char ** flag, int imax, int jmax) ;
+__global__ void cuda_setup(double **u, double **v, double **p, char ** flag, int imax, int jmax);
+void problem_set_up();
 
 #endif
