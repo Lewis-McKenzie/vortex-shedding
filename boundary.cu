@@ -1,7 +1,10 @@
 #include "data.cuh"
 #include "boundary.cuh"
 
-#define init_outer_loop(i, limit, addon) i = threadIdx.x * (imax+2) / blockDim.x;limit = (threadIdx.x+1) * (imax+2) / blockDim.x;if (i == 0) {i = 1;} else if (limit > imax+addon) {i_end = imax+addon;}
+
+#define init_outer_loop(i, limit) {int iters_per_block = (imax+2) / gridDim.x;int i_block_start = blockIdx.x * iters_per_block;i = i_block_start + threadIdx.x * iters_per_block / blockDim.x;if (blockDim.x > iters_per_block) {limit = i+1;} else {limit = i_block_start + (threadIdx.x + 1)  * iters_per_block / blockDim.x;}}
+
+#define init_inner_loop(j, limit) {if (blockDim.x > (imax+2) / gridDim.x) {int threads = blockDim.x / ((imax+2) / gridDim.x);int iters = (jmax+2) / threads;j = (threadIdx.x % threads) * iters;j_end = ((threadIdx.x % threads) + 1) * iters;}else{j = 0;limit = jmax+2;}}
 
 /**
  * @brief Given the boundary conditions defined by the flag matrix, update
@@ -9,17 +12,22 @@
  * edges of the matrix.
  */
 __global__ void apply_boundary_conditions(double **u, double **v, char **flag, int imax, int jmax) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
     int i, i_end;
-    init_outer_loop(i, i_end, 2);
-    
-    if (threadIdx.x == 0) {
-        for (int j = 0; j < jmax+2; j++) {
+    init_outer_loop(i, i_end);
+
+    if (i == 0) {
+        int j, j_end;
+        init_inner_loop(j, j_end)
+        for (;j < j_end && j < jmax+2; j++) {
             /* Fluid freely flows in from the west */
             u[0][j] = u[1][j];
             v[0][j] = v[1][j];
         }
-        i = 0;
-    } else if (threadIdx.x == blockDim.x - 1) {
+    } else if (i_end == imax+2) {
+        int j, j_end;
+        init_inner_loop(j, j_end)
         for (int j = 0; j < jmax+2; j++) {
             /* Fluid freely flows out to the east */
             u[imax][j] = u[imax-1][j];
@@ -27,7 +35,7 @@ __global__ void apply_boundary_conditions(double **u, double **v, char **flag, i
         }
     }
 
-    for (; i < i_end; i++) {
+    for (; i < i_end && i < imax+2; i++) {
         /* The vertical velocity approaches 0 at the north and south
         * boundaries, but fluid flows freely in the horizontal direction */
         v[i][jmax] = 0.0;
@@ -41,9 +49,15 @@ __global__ void apply_boundary_conditions(double **u, double **v, char **flag, i
      * tend towards zero in these cells.
      */
 
-    init_outer_loop(i, i_end, 1);
-    for (; i < i_end; i++) {
-        for (int j = 1; j < jmax+1; j++) {
+    init_outer_loop(i, i_end);
+    if (blockDim.x < (imax+2) / gridDim.x) {
+        i = max(i, 1);
+    }
+    for (;i >= 1 && i < i_end && i < imax+1; i++) {
+        int j, j_end;
+        init_inner_loop(j, j_end);
+        j = max(j, 1);
+        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
             if (flag[i][j] & B_NSEW) {
                 switch (flag[i][j]) {
                     case B_N: 
@@ -98,9 +112,15 @@ __global__ void apply_boundary_conditions(double **u, double **v, char **flag, i
     /* Finally, fix the horizontal velocity at the  western edge to have
      * a continual flow of fluid into the simulation.
      */
-    if (threadIdx.x == 0) {
+    if (tid == 0) {
         v[0][0] = 2 * vi-v[1][0];
-        for (int j = 1; j < jmax+1; j++) {
+    }
+    init_outer_loop(i, i_end);
+    if (i == 0) {
+        int j, j_end;
+        init_inner_loop(j, j_end);
+        j = max(j, 1);
+        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
             u[0][j] = ui;
             v[0][j] = 2 * vi - v[1][j];
         }
