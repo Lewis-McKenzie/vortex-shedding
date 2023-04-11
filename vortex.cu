@@ -25,7 +25,7 @@ double get_time() {
 
 #define init_outer_loop(i, limit) {int iters_per_block = (imax+2) / gridDim.x;int i_block_start = blockIdx.x * iters_per_block;i = i_block_start + threadIdx.x * iters_per_block / blockDim.x;if (blockDim.x > iters_per_block) {limit = i+1;} else {limit = i_block_start + (threadIdx.x + 1)  * iters_per_block / blockDim.x;i = max(i, 1);}}
 
-#define init_inner_loop(j, limit) {if (blockDim.x > (imax+2) / gridDim.x) {int threads = blockDim.x / ((imax+2) / gridDim.x);int iters = (jmax+2) / threads;j = (threadIdx.x % threads) * iters;j_end = ((threadIdx.x % threads) + 1) * iters;}else{j = 0;limit = jmax+2;}}
+#define init_inner_loop(j, limit) {if (blockDim.x > (imax+2) / gridDim.x) {int threads = blockDim.x / ((imax+2) / gridDim.x);int iters = (jmax+2) / threads;j = (threadIdx.x % threads) * iters;limit = ((threadIdx.x % threads) + 1) * iters;}else{j = 0;limit = jmax+2;}}
 
 
 #define debug_cuda(i, limit) printf("thread: %d out of %d on block %d. start: %d end: %d\n", threadIdx.x, blockDim.x, blockIdx.x, i, limit);
