@@ -30,31 +30,29 @@ double get_time() {
 
 #define debug_cuda(i, limit) printf("thread: %d out of %d on block %d. start: %d end: %d\n", threadIdx.x, blockDim.x, blockIdx.x, i, limit);
 
-__device__ double block_reduce_sum(double value, double *reduction_buffer) {
-    int tid = threadIdx.x;
-    reduction_buffer[tid] = value;
+__global__ void block_reduce_sum_buffer(double *reduction_buffer) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
     __syncthreads();
     
     for (int s=blockDim.x/2; s>0; s>>=1) {
-        if (tid < s)
+        if (threadIdx.x < s)
             reduction_buffer[tid] += reduction_buffer[tid + s];
 
         __syncthreads();
     }
-
-    return reduction_buffer[0];
 }
 
-__global__ void block_reduce_sum_buffer(double *reduction_buffer) {
-    int tid = threadIdx.x;
-    __syncthreads();
-    
-    for (int s=blockDim.x/2; s>0; s>>=1) {
-        if (tid < s)
-            reduction_buffer[tid] += reduction_buffer[tid + s];
-
-        __syncthreads();
+__global__ void grid_reduce_sum_buffer(double *reduction_buffer, int grid_dim, int block_dim) {
+    for (int i = block_dim; i < grid_dim*block_dim; i+=block_dim) {
+        reduction_buffer[0] += reduction_buffer[i];
     }
+}
+
+double reduce(double *reduction_buffer) {
+    block_reduce_sum_buffer<<<grid_dim, block_dim>>>(reduction_buffer);
+    grid_reduce_sum_buffer<<<1, 1>>>(reduction_buffer, grid_dim, block_dim);
+    cudaDeviceSynchronize();
+    return reduction_buffer[0];
 }
 
 
@@ -66,7 +64,6 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
 
     int i, i_end;
     init_outer_loop(i, i_end);
-
     for (; i >= 1 && i < i_end && i < imax; i++) {
         int j, j_end;
         init_inner_loop(j, j_end);
@@ -172,7 +169,7 @@ __global__ void init_p0(double **p, char **flag, int imax, int jmax, double *red
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
         }
     }
-    reduction_buffer[threadIdx.x] = p0;
+    reduction_buffer[blockIdx.x * blockDim.x + threadIdx.x] = p0;
 }
 
 
@@ -235,7 +232,7 @@ __global__ void update_res(double **p, char **flag, double **rhs, int imax, int 
             }
         }
     }
-    reduction_buffer[threadIdx.x] = res;
+    reduction_buffer[blockIdx.x * blockDim.x + threadIdx.x] = res;
 }
 
 /**
@@ -247,10 +244,9 @@ __global__ void update_res(double **p, char **flag, double **rhs, int imax, int 
 double poisson() {
 
     init_p0<<<grid_dim, block_dim>>>(p, flag, imax, jmax, reduction_buffer);
-    block_reduce_sum_buffer<<<grid_dim, block_dim>>>(reduction_buffer);
-    cudaDeviceSynchronize();
+    double p0 = reduce(reduction_buffer);
    
-    double p0 = sqrt(reduction_buffer[0] / fluid_cells); 
+    p0 = sqrt(p0 / fluid_cells); 
     if (p0 < 0.0001) { p0 = 1.0; }
 
     /* Red/Black SOR-iteration */
@@ -260,10 +256,9 @@ double poisson() {
 
         update_p<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax);
         update_res<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax, res, reduction_buffer);
-        block_reduce_sum_buffer<<<grid_dim, block_dim>>>(reduction_buffer);
-        cudaDeviceSynchronize();
+        res = reduce(reduction_buffer);
 
-        res = sqrt(reduction_buffer[0] / fluid_cells) / p0;
+        res = sqrt(res / fluid_cells) / p0;
         //printf("%lf\n", res);
 
         /* convergence? */
