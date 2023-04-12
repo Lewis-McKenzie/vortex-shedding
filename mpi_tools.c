@@ -28,9 +28,9 @@ void combine_2d_array(void** target, MPI_Datatype datatype) {
     if (rank == 0) {
         for (int r = 1; r < size; r++) {
             // index of the first row to recieve
-            int ptr = r * (imax+2) / size;
+            int ptr = r * imax / size + 1;
             // number of rows to get
-            int count = (imax+2) / size;
+            int count = imax / size;
             if (r == size - 1) {
                 count = (imax+2) - r * count;
             }
@@ -40,9 +40,9 @@ void combine_2d_array(void** target, MPI_Datatype datatype) {
         }
     } else {
         // index of the first row to send
-        int ptr = rank * (imax+2) / size;
+        int ptr = rank * imax / size + 1;
         // number of rows to send
-        int count = (imax+2) / size;        
+        int count = imax / size;        
         if (rank == size - 1) {
             count = (imax+2) - rank * count;
         }

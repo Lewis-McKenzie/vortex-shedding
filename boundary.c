@@ -4,7 +4,11 @@
 #include "boundary.h"
 #include "mpi_tools.h"
 
-#define init_outer_loop(index, limit, max) index = rank * (imax+2) / size; limit = (rank+1) * (imax+2) / size;if (rank == 0) {index = 1;}if (limit > max) {limit = max;}
+// loop between 1 and imax+1
+#define init_outer_loop(index, limit) {index = rank * imax / size + 1;limit = (rank+1) * imax / size + 1;}
+
+
+
 /**
  * @brief Given the boundary conditions defined by the flag matrix, update
  * the u and v velocities. Also enforce the boundary conditions at the
@@ -28,8 +32,15 @@ void apply_boundary_conditions() {
     }
 
     int i, i_limit;
-    init_outer_loop(i, i_limit, imax+2);
-    for (; i < i_limit; i++) {
+    init_outer_loop(i, i_limit);
+    if (i == 1) {
+        i--;
+    }
+    if (i_limit == imax+1) {
+        i_limit++;
+    }
+
+    for (; i < i_limit && i < imax+2; i++) {
         /* The vertical velocity approaches 0 at the north and south
         * boundaries, but fluid flows freely in the horizontal direction */
         v[i][jmax] = 0.0;
@@ -43,8 +54,8 @@ void apply_boundary_conditions() {
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
-    init_outer_loop(i, i_limit, imax+1);
-    for (; i < i_limit; i++) {
+    init_outer_loop(i, i_limit);
+    for (; i < i_limit && i < imax+1; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & B_NSEW) {
                 switch (flag[i][j]) {
@@ -107,6 +118,6 @@ void apply_boundary_conditions() {
             v[0][j] = 2 * vi - v[1][j];
         }        
     }
-    //sync((void **) u, MPI_DOUBLE);
-    //sync((void **) v, MPI_DOUBLE);
+    sync((void **) u, MPI_DOUBLE);
+    sync((void **) v, MPI_DOUBLE);
 }
