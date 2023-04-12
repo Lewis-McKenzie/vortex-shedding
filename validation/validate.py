@@ -6,9 +6,8 @@ from data import Data
 class Validator:
 
     @staticmethod
-    def validate(bench: str, test: str) -> bool:
-        benchmark = Validator.read_file(bench)
-        result = Validator.read_file(test)
+    def validate(benchmark: Data, result: Data) -> bool:
+
         return benchmark == result
 
     @staticmethod
@@ -69,7 +68,28 @@ class Validator:
 
 def main() -> None:
     bench, test = args()
-    assert Validator.validate(bench, test)
+    benchmark = Validator.read_file(bench)
+    result = Validator.read_file(test)
+    valid = Validator.validate(benchmark, result)
+    if valid:
+        print("Valid")
+        return
+
+    print_stats("u", benchmark.u_diffs(result))
+    print_stats("v", benchmark.v_diffs(result))
+    print_stats("p", benchmark.p_diffs(result))
+
+    assert valid, "Test result does not match the benchmark"
+
+def print_stats(name: str, diffs) -> None:
+    d_abs = sorted(diffs, key=lambda d: d[0][0])
+    d_rel = sorted(diffs, key=lambda d: d[0][1])
+    print(f"{name} diffs: {len(diffs)}\n"
+          f"max abs err: {d_abs[-1][0][0]} {d_abs[-1][1]} min abs err: {d_abs[0][0][0]} {d_abs[0][1]}\n"
+          f"max rel err: {d_rel[-1][0][1]}% {d_rel[-1][1]} min rel err: {d_rel[0][0][1]}% {d_rel[0][1]}\n"
+          f"mean abs err: {sum(d[0][0] for d in diffs)/len(diffs)} median abs err: {d_abs[len(diffs)//2][0][0]}\n"
+          f"mean rel err: {sum(d[0][1] for d in diffs)/len(diffs)}% median rel err: {d_rel[len(diffs)//2][0][1]}%\n")
+
 
 def args() -> Tuple[str, str]:
     parser = argparse.ArgumentParser(description="Validate a test vtk file against a benchmark", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
