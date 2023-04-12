@@ -75,9 +75,9 @@ def main() -> None:
     us = sorted(benchmark.u_diffs(result))
     vs = sorted(benchmark.v_diffs(result))
     ps = sorted(benchmark.p_diffs(result))
-    print(f"Max u diff: {max(us)}")
-    print(f"Max v diff: {max(vs)}")
-    print(f"Max p diff: {max(ps)}")
+    print(f"u diffs: {len(us)} max: {max(us)} min: {min(us)} avg: {sum(us)/len(us)} medium: {us[len(us)//2]}")
+    print(f"v diffs: {len(vs)} max: {max(vs)} min: {min(vs)} avg: {sum(vs)/len(vs)} medium: {us[len(vs)//2]}")
+    print(f"p diffs: {len(ps)} max: {max(ps)} min: {min(ps)} avg: {sum(ps)/len(ps)} medium: {us[len(ps)//2]}")
     assert valid, "Test result does not match the benchmark"
 
 def args() -> Tuple[str, str]:
