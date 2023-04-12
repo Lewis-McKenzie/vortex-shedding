@@ -78,7 +78,7 @@ void free_arrays() {
  * marking any obstacle cells and the edge cells as boundaries. The cells 
  * adjacent to boundary cells have their relevant flags set too.
  */
-__global__ void cuda_setup(double **u, double **v, double **p, char ** flag, int imax, int jmax) {
+__global__ void cuda_arr_setup(double **u, double **v, double **p, int imax, int jmax) {
     for (int i = 0; i < imax+2; i++) {
         for (int j = 0; j < jmax+2; j++) {
             u[i][j] = ui;
@@ -90,7 +90,7 @@ __global__ void cuda_setup(double **u, double **v, double **p, char ** flag, int
 
 void problem_set_up() {
     
-    cuda_setup<<<1, 1>>>(u, v, p, flag, imax, jmax);
+    cuda_arr_setup<<<1, 1>>>(u, v, p, imax, jmax);
     cudaDeviceSynchronize();
 
     /* Mark a circular obstacle as boundary cells, the rest as fluid */
