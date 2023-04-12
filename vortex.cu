@@ -23,9 +23,11 @@ double get_time() {
 
 #define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
 
-#define init_outer_loop(i, limit) {int iters_per_block = (imax+2) / gridDim.x;int i_block_start = blockIdx.x * iters_per_block;i = i_block_start + threadIdx.x * iters_per_block / blockDim.x;if (blockDim.x > iters_per_block) {limit = i+1;} else {limit = i_block_start + (threadIdx.x + 1)  * iters_per_block / blockDim.x;i = max(i, 1);}}
+// loop between 1 and imax+1
+#define init_outer_loop(i, limit) {int i_block_start = blockIdx.x * (imax / gridDim.x);i = i_block_start + threadIdx.x * (imax / gridDim.x) / blockDim.x + 1;limit = max(i+1, i_block_start + (threadIdx.x + 1)  * (imax / gridDim.x) / blockDim.x+1);}
 
-#define init_inner_loop(j, limit) {if (blockDim.x > (imax+2) / gridDim.x) {int threads = blockDim.x / ((imax+2) / gridDim.x);int iters = (jmax+2) / threads;j = (threadIdx.x % threads) * iters;limit = ((threadIdx.x % threads) + 1) * iters;}else{j = 0;limit = jmax+2;}}
+// loop between 1 and jmax+1
+#define init_inner_loop(j, limit) {if (blockDim.x > imax / gridDim.x) {int threads = blockDim.x / (imax / gridDim.x);int iters = jmax / threads;j = (threadIdx.x % threads) * iters + 1;limit = ((threadIdx.x % threads) + 1) * iters + 1;}else {j = 1;limit = jmax+1;}}
 
 
 #define debug_cuda(i, limit) printf("thread: %d out of %d on block %d. start: %d end: %d\n", threadIdx.x, blockDim.x, blockIdx.x, i, limit);
@@ -65,9 +67,9 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
     int i, i_end;
     init_outer_loop(i, i_end);
     for (; i >= 1 && i < i_end && i < imax; i++) {
+
         int j, j_end;
         init_inner_loop(j, j_end);
-        j = max(j, 1);
         for (;j >= 1 && j < j_end && j < jmax+1; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
@@ -95,7 +97,6 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
     for (;i >= 1 && i < i_end && i < imax+1; i++) {
         int j, j_end;
         init_inner_loop(j, j_end);
-        j = max(j, 1);
         for (;j >= 1 && j < j_end && j < jmax; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
@@ -121,17 +122,15 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
 
     init_outer_loop(i, i_end);
     /* f & g at external boundaries */
-    if (i == 0) {
+    if (i == 1) {
         int j, j_end;
         init_inner_loop(j, j_end);
-        j = max(j, 1);
-        for (;j >= 1 &&j < j_end && j < jmax+1; j++) {
+        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
             f[0][j]    = u[0][j];
         }
-    } else if (i_end == imax+2) {
+    } else if (i_end == imax) {
         int j, j_end;
         init_inner_loop(j, j_end);
-        j = max(j, 1);
         for (;j >= 1 && j < j_end && j < jmax+1; j++) {
             f[imax][j] = u[imax][j];
         }
@@ -154,7 +153,6 @@ __global__ void compute_rhs(char **flag, double **f, double **g, double **rhs, i
     for (;i >=1 && i < i_end && i < imax+1; i++) {
         int j, j_end;
         init_inner_loop(j, j_end);
-        j = max(j, 1);
         for (;j >= 1 && j < j_end && j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
                 /* only for fluid and non-surface cells */
@@ -175,7 +173,6 @@ __global__ void init_p0(double **p, char **flag, int imax, int jmax, double *red
     for (;i >= 1 && i < i_end && i < imax+1; i++) {
         int j, j_end;
         init_inner_loop(j, j_end);
-        j = max(j, 1);
         for (;j >= 1 && j < j_end && j < jmax+1; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
         }
@@ -183,20 +180,15 @@ __global__ void init_p0(double **p, char **flag, int imax, int jmax, double *red
     reduction_buffer[blockIdx.x * blockDim.x + threadIdx.x] = p0;
 }
 
-
 __global__ void update_p(double **p, char **flag, double **rhs, int imax, int jmax) {
     int i, i_end;
     for (int rb = 0; rb < 2; rb++) {
 
         init_outer_loop(i, i_end);
+
         for (;i >= 1 && i < i_end && i < imax+1; i++) {
             int j, j_end;
-            init_inner_loop(j, j_end);
-            if (i > 510) {
-                printf("block: %d thread: %d i start %d end %d j start %d end %d\n", blockIdx.x, threadIdx.x, i, i_end, j, j_end);
-            }
-            return;
-            j = max(j, 1);
+            init_inner_loop(j, j_end);            
             for (;j >= 1 && j < j_end && j < jmax+1; j++) {
                 if ((i + j) % 2 != rb) { continue; }
                 if (flag[i][j] == (C_F | B_NSEW)) {
@@ -230,9 +222,9 @@ __global__ void update_res(double **p, char **flag, double **rhs, int imax, int 
     int i, i_end;
     init_outer_loop(i, i_end);
     for (;i >= 1 && i < i_end && i < imax+1; i++) {
+
         int j, j_end;
         init_inner_loop(j, j_end);
-        j = max(j, 1);
         for (;j >= 1 && j < j_end && j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
                 double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
@@ -272,7 +264,6 @@ double poisson() {
     for (iter = 0; iter < itermax; iter++) {
 
         update_p<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax);
-        return 0.0;
         update_res<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax, res, reduction_buffer);
         res = reduce(reduction_buffer);
 
@@ -297,7 +288,6 @@ __global__ void update_velocity(double **u, double **v, double **p, char ** flag
     for (;i >= 1 && i < i_end && i < imax-2; i++) {
         int j, j_end;
         init_inner_loop(j, j_end);
-        j = max(j, 1);
         for (;j >= 1 && j < j_end && j < jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
@@ -310,7 +300,6 @@ __global__ void update_velocity(double **u, double **v, double **p, char ** flag
     for (;i >= 1 && i < i_end && i < imax-1; i++) {
         int j, j_end;
         init_inner_loop(j, j_end);
-        j = max(j, 1);
         for (;j >= 1 && j < j_end && j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
