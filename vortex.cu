@@ -135,7 +135,6 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
             f[imax][j] = u[imax][j];
         }
     }
-    init_outer_loop(i, i_end);
     for (; i >= 1 && i < i_end && i < imax+1; i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
