@@ -6,9 +6,8 @@ from data import Data
 class Validator:
 
     @staticmethod
-    def validate(bench: str, test: str) -> bool:
-        benchmark = Validator.read_file(bench)
-        result = Validator.read_file(test)
+    def validate(benchmark: Data, result: Data) -> bool:
+
         return benchmark == result
 
     @staticmethod
@@ -69,7 +68,17 @@ class Validator:
 
 def main() -> None:
     bench, test = args()
-    assert Validator.validate(bench, test)
+    benchmark = Validator.read_file(bench)
+    result = Validator.read_file(test)
+    valid = Validator.validate(benchmark, result)
+
+    us = sorted(benchmark.u_diffs(result))
+    vs = sorted(benchmark.v_diffs(result))
+    ps = sorted(benchmark.p_diffs(result))
+    print(f"Max u diff: {max(us)}")
+    print(f"Max v diff: {max(vs)}")
+    print(f"Max p diff: {max(ps)}")
+    assert valid, "Test result does not match the benchmark"
 
 def args() -> Tuple[str, str]:
     parser = argparse.ArgumentParser(description="Validate a test vtk file against a benchmark", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
