@@ -148,7 +148,7 @@ void update_p() {
  * @brief computation of residual
 */
 double compute_res(double res) {
-    #pragma omp parallel for
+    #pragma omp parallel for reduction(+:res)
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
