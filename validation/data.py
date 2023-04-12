@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 class Data:
     def __init__(self) -> None:
@@ -18,31 +18,31 @@ class Data:
             string += f"{attribute}: {value}\n"
         return string
     
-    def u_diffs(self, other: object) -> List[float]:
+    def u_diffs(self, other: object) -> List[Tuple[float, Tuple[int, int]]]:
         u_diffs = []
         for i, row in enumerate(self.u):
             for j, u in enumerate(row):
                 if u != other.u[i][j]:
                     #print(f"u ({i}, {j}) diff: {abs(u - other.u[i][j])}")
-                    u_diffs.append(abs(u - other.u[i][j]))
+                    u_diffs.append((abs(u - other.u[i][j]), (i, j)))
         return u_diffs
 
-    def v_diffs(self, other: object) -> List[float]:
+    def v_diffs(self, other: object) -> List[Tuple[float, Tuple[int, int]]]:
         v_diffs = []
         for i, row in enumerate(self.v):
             for j, v in enumerate(row):
                 if v != other.v[i][j]:
                     #print(f"v ({i}, {j}) diff: {abs(v - other.v[i][j])}")
-                    v_diffs.append(abs(v - other.v[i][j]))
+                    v_diffs.append((abs(v - other.v[i][j]), (i, j)))
         return v_diffs
     
-    def p_diffs(self, other: object) -> List[float]:
+    def p_diffs(self, other: object) -> List[Tuple[float, Tuple[int, int]]]:
         p_diffs = []
         for i, row in enumerate(self.p):
             for j, p in enumerate(row):
                 if p != other.p[i][j]:
                     #print(f"p ({i}, {j}) diff: {abs(p - other.p[i][j])}")
-                    p_diffs.append(abs(p - other.p[i][j]))
+                    p_diffs.append((abs(p - other.p[i][j]), (i, j)))
         return p_diffs
 
     def __eq__(self, __o: object) -> bool:
