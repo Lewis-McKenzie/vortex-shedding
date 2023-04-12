@@ -74,14 +74,22 @@ def main() -> None:
     if valid:
         print("Valid")
         return
-    us = sorted(benchmark.u_diffs(result), key=lambda d: d[0])
-    vs = sorted(benchmark.v_diffs(result), key=lambda d: d[0])
-    ps = sorted(benchmark.p_diffs(result), key=lambda d: d[0])
 
-    print(f"u diffs: {len(us)} max: {us[-1]} min: {us[0][0]} avg: {sum(d for d, _ in us)/len(us)} medium: {us[len(us)//2][0]}")
-    print(f"v diffs: {len(vs)} max: {vs[-1]} min: {vs[0][0]} avg: {sum(d for d, _ in vs)/len(vs)} medium: {vs[len(vs)//2][0]}")
-    print(f"p diffs: {len(ps)} max: {ps[-1]} min: {ps[0][0]} avg: {sum(d for d, _ in ps)/len(ps)} medium: {ps[len(ps)//2][0]}")
+    print_stats("u", benchmark.u_diffs(result))
+    print_stats("v", benchmark.v_diffs(result))
+    print_stats("p", benchmark.p_diffs(result))
+
     assert valid, "Test result does not match the benchmark"
+
+def print_stats(name: str, diffs) -> None:
+    d_abs = sorted(diffs, key=lambda d: d[0][0])
+    d_rel = sorted(diffs, key=lambda d: d[0][1])
+    print(f"{name} diffs: {len(diffs)}\n"
+          f"max abs err: {d_abs[-1][0][0]} {d_abs[-1][1]} min abs err: {d_abs[0][0][0]} {d_abs[0][1]}\n"
+          f"max rel err: {d_rel[-1][0][1]}% {d_rel[-1][1]} min rel err: {d_rel[0][0][1]}% {d_rel[0][1]}\n"
+          f"mean abs err: {sum(d[0][0] for d in diffs)/len(diffs)} median abs err: {d_abs[len(diffs)//2][0][0]}\n"
+          f"mean rel err: {sum(d[0][1] for d in diffs)/len(diffs)}% median rel err: {d_rel[len(diffs)//2][0][1]}%\n")
+
 
 def args() -> Tuple[str, str]:
     parser = argparse.ArgumentParser(description="Validate a test vtk file against a benchmark", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
