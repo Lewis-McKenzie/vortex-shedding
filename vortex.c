@@ -37,9 +37,7 @@ double get_time() {
  */
 void compute_tentative_velocity() {
     int i, i_limit;
-    init_outer_loop(i, i_limit);
-
-    
+    init_outer_loop(i, i_limit);    
 
     for (;i < i_limit && i < imax; i++) {
 
@@ -190,8 +188,8 @@ double poisson() {
                 }
             }
         }
-
         sync((void **) p, MPI_DOUBLE);
+
         
         /* computation of residual */
         init_outer_loop(i, i_limit);
@@ -311,7 +309,7 @@ void main_loop() {
 
         time(apply_boundary_conditions(), boundary_time);
 
-        time(sync_all(), sync_time);
+        //time(sync_all(), sync_time);
 
         if ((iters % output_freq == 0) && (rank == 0)) {
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
