@@ -71,6 +71,9 @@ def main() -> None:
     benchmark = Validator.read_file(bench)
     result = Validator.read_file(test)
     valid = Validator.validate(benchmark, result)
+    if valid:
+        print("Valid")
+        return
 
     us = sorted(benchmark.u_diffs(result), key=lambda d: d[0])
     vs = sorted(benchmark.v_diffs(result), key=lambda d: d[0])
