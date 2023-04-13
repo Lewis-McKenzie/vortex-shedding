@@ -32,9 +32,10 @@ double get_time() {
 
 #define debug_cuda(i, limit) printf("thread: %d out of %d on block %d. start: %d end: %d\n", threadIdx.x, blockDim.x, blockIdx.x, i, limit);
 
+#define debug_csv(i, i_limit, j, j_limit) printf("%d,%d,%d,%d\n", i, i_limit, j, j_limit);
+
 __global__ void block_reduce_sum_buffer(double *reduction_buffer) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    __syncthreads();
     
     for (int s=blockDim.x/2; s>0; s>>=1) {
         if (threadIdx.x < s)
@@ -51,9 +52,11 @@ __global__ void grid_reduce_sum_buffer(double *reduction_buffer, int grid_dim, i
 }
 
 double reduce(double *reduction_buffer) {
+    checkCuda(cudaDeviceSynchronize());
     block_reduce_sum_buffer<<<grid_dim, block_dim>>>(reduction_buffer);
+    checkCuda(cudaDeviceSynchronize());
     grid_reduce_sum_buffer<<<1, 1>>>(reduction_buffer, grid_dim, block_dim);
-    cudaDeviceSynchronize();
+    checkCuda(cudaDeviceSynchronize());
     return reduction_buffer[0];
 }
 
@@ -263,6 +266,7 @@ double poisson() {
     for (iter = 0; iter < itermax; iter++) {
 
         update_p<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax);
+        checkCuda(cudaDeviceSynchronize());
         update_res<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax, res, reduction_buffer);
         res = reduce(reduction_buffer);
 
@@ -349,7 +353,7 @@ void main_loop() {
     double res, t, ten_t, rhs_t, pois_t, vel_t, bound_t;
 
     apply_boundary_conditions<<<grid_dim, block_dim>>>(u, v, flag, imax, jmax);
-
+    checkCuda(cudaDeviceSynchronize());
     /* Main loop */
     int iters = 0;
     for (t = 0.0; t < t_end; t += del_t, iters++) {
@@ -358,17 +362,19 @@ void main_loop() {
         }
 
         (compute_tentative_velocity<<<grid_dim, block_dim>>>(u, v, flag, f, g, imax, jmax, del_t, Re, delx, dely), ten_t);
-
+        checkCuda(cudaDeviceSynchronize());
         (compute_rhs<<<grid_dim, block_dim>>>(flag, f, g, rhs, imax, jmax, del_t, delx, dely), rhs_t);
-
+        checkCuda(cudaDeviceSynchronize());
         (res = poisson(), pois_t);
 
         (update_velocity<<<grid_dim, block_dim>>>(u, v, p, flag, f, g, imax, jmax, del_t, delx, dely), vel_t);
+        checkCuda(cudaDeviceSynchronize());
 
         (apply_boundary_conditions<<<grid_dim, block_dim>>>(u, v, flag, imax, jmax), bound_t);
+        checkCuda(cudaDeviceSynchronize());
 
         if ((iters % output_freq == 0)) {
-            cudaDeviceSynchronize();
+            checkCuda(cudaDeviceSynchronize());
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
 
             if ((!no_output) && (enable_checkpoints)) {
@@ -400,7 +406,7 @@ int main(int argc, char *argv[]) {
     set_defaults();
     parse_args(argc, argv);
     setup();
-    cudaDeviceSynchronize();
+    checkCuda(cudaDeviceSynchronize());
 
     if (verbose) print_opts();
 
