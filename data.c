@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
+#include <mpi.h>
 
 #include "vtk.h"
 #include "data.h"
@@ -46,6 +47,22 @@ int g_size_x, g_size_y;
 double ** g;
 int flag_size_x, flag_size_y;
 char ** flag;
+
+
+char err_buffer[MPI_MAX_ERROR_STRING];
+
+void check_mpi(int ierr) {
+	if (ierr != MPI_SUCCESS) {
+		int errclass, resultlen;
+		MPI_Error_class(ierr,&errclass);
+		if (errclass== MPI_ERR_RANK) {
+			fprintf(stderr,"Invalid rank used in MPI send call\n");
+			MPI_Error_string(ierr,err_buffer,&resultlen);
+			fprintf(stderr,err_buffer);
+			MPI_Finalize();             /* abort*/
+		}
+	}
+}
 
 /**
  * @brief Allocate a 2D array that is addressable using square brackets

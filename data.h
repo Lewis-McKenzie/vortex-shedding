@@ -58,5 +58,6 @@ extern char ** flag;
 double **alloc_2d_array(int m, int n);
 char **alloc_2d_char_array(int m, int n);
 void free_2d_array(void ** array);
+void check_mpi(int ierr);
 
 #endif
