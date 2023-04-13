@@ -32,7 +32,7 @@ void combine_2d_array(void** target, MPI_Datatype datatype) {
             // number of rows to get
             int count = imax / size;
             if (r == size - 1) {
-                count = (imax+2) - r * count;
+                count = (imax+1) - r * count;
             }
 
             MPI_Status status;
@@ -44,7 +44,7 @@ void combine_2d_array(void** target, MPI_Datatype datatype) {
         // number of rows to send
         int count = imax / size;        
         if (rank == size - 1) {
-            count = (imax+2) - rank * count;
+            count = (imax+1) - rank * count;
         }
 
         MPI_Send(target[ptr], count * (jmax+2), datatype, 0, 0, MPI_COMM_WORLD);
