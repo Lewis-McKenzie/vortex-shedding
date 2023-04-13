@@ -2,7 +2,7 @@
 #SBATCH --time=00:10:00                 # Maximum time (HH:MM:SS)
 #SBATCH --ntasks=1                      # run on a single CPU
 #SBATCH --mem=1gb                       # reserve 1GB memory for job
-#SBATCH --output=default%j.log          # standard output and error log
+#SBATCH --output=viking/default%j.log          # standard output and error log
 #SBATCH --partition=teach               # run in the teaching queue
  
 echo default running on `hostname`
