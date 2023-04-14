@@ -1,7 +1,8 @@
 #!/bin/bash
+#SBATCH --job-name=MPI-Default-%j                    # Job name
 #SBATCH --time=00:10:00                 # Maximum time (HH:MM:SS)
 #SBATCH --ntasks=40                     # run on a single CPU
-#SBATCH --output=simple_job_%j.log      # standard output and error log
+#SBATCH --output=viking-logs/MPI-Default-%j.log    |
 #SBATCH --partition=teach               # run in the teaching queue
 #SBATCH --cpus-per-task=1
 #SBATCH --nodes=2
