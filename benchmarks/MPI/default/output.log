@@ -18,5 +18,6 @@ Step     1600, Time: 4.00250000e+00 (del_t: 2.50000000e-03), Residual: 4.6989107
 Step     1700, Time: 4.25250000e+00 (del_t: 2.50000000e-03), Residual: 6.16229469e-01
 Step     1800, Time: 4.50250000e+00 (del_t: 2.50000000e-03), Residual: 7.39525016e-01
 Step     1900, Time: 4.75250000e+00 (del_t: 2.50000000e-03), Residual: 8.57377796e-01
+0.000109
 Step     2000, Time: 5.00000000e+00, Residual: 9.32315852e-01
 Simulation complete.

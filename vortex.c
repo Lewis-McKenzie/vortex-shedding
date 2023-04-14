@@ -107,8 +107,8 @@ void compute_tentative_velocity() {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
     }
-    sync((void **)g, MPI_DOUBLE);
-    sync((void **)f, MPI_DOUBLE);
+    swap_edge_arrays((void **)g, MPI_DOUBLE);
+    swap_edge_arrays((void **)f, MPI_DOUBLE);
 }
 
 
@@ -129,7 +129,7 @@ void compute_rhs() {
             }
         }
     }
-    sync((void **)rhs, MPI_DOUBLE);
+    swap_edge_arrays((void **)rhs, MPI_DOUBLE);
 }
 
 
@@ -188,7 +188,7 @@ double poisson() {
                 }
             }
         }
-        sync((void **) p, MPI_DOUBLE);
+        swap_edge_arrays((void **) p, MPI_DOUBLE);
 
         
         /* computation of residual */
@@ -246,8 +246,8 @@ void update_velocity() {
             }
         }
     }
-    sync((void **) u, MPI_DOUBLE);
-    sync((void **) v, MPI_DOUBLE);
+    swap_edge_arrays((void **) u, MPI_DOUBLE);
+    swap_edge_arrays((void **) v, MPI_DOUBLE);
 }
 
 
@@ -318,7 +318,7 @@ void main_loop() {
             print_timer("poisson", p_time);
             print_timer("update_velocity", v_time);
             print_timer("apply_boundary_conditions", boundary_time);
-            print_timer("sync", sync_time);
+            print_timer("swap_edge_arrays", sync_time);
             if(print_time)
                 printf("\n");
 
@@ -329,6 +329,11 @@ void main_loop() {
 
     } /* End of main loop */
 
+    if (rank==size-1) {
+        printf("%lf\n", p[393][32]);
+    }
+
+    sync_all();
     if (rank == 0) {
         printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
         printf("Simulation complete.\n");

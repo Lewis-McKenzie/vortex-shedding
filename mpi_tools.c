@@ -18,6 +18,7 @@ void sync_all() {
 void sync(void** target, MPI_Datatype datatype) {
     combine_2d_array(target, datatype);
     broadcast(target, datatype);
+    //alt(target, datatype);
 }
 
 
@@ -30,8 +31,13 @@ void alt(void** target, MPI_Datatype datatype) {
     if (rank == size - 1 || rank == 0) {
         count++;
     }
+
+    void* temp = malloc(sizeof(double)*count*(jmax+2));
+    memcpy(temp, target[ptr], sizeof(double)*count*(jmax+2));
     
-    MPI_Allgather(target[ptr], count, datatype, target[0], (imax+2) * (jmax+2), datatype, MPI_COMM_WORLD);
+    MPI_Allgather(temp, count*(jmax+2), datatype, target[0], (imax+2) * (jmax+2), datatype, MPI_COMM_WORLD);
+
+    free(temp);
 }
 
 void broadcast(void** target, MPI_Datatype datatype) {
@@ -48,6 +54,7 @@ void combine_2d_array(void** target, MPI_Datatype datatype) {
             if (r == size - 1) {
                 count++;
             }
+            //printf("recieving rank: %d ptr: %d to %d\n", r, ptr, ptr+count);
 
             MPI_Status status;
             check_mpi(MPI_Recv(target[ptr], count * (jmax+2), datatype, r, MPI_ANY_TAG, MPI_COMM_WORLD, &status));
@@ -64,6 +71,7 @@ void combine_2d_array(void** target, MPI_Datatype datatype) {
         if (rank == size - 1) {
             count++;
         }
+        //printf("sending rank: %d ptr: %d to %d\n", rank, ptr, ptr+count);
 
         check_mpi(MPI_Send(target[ptr], count * (jmax+2), datatype, 0, 0, MPI_COMM_WORLD));
 
