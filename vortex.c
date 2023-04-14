@@ -20,14 +20,14 @@ double get_time() {
 	return (double) (timer.tv_sec + timer.tv_nsec / 1000000000.0);
 }
 
-#define time(func, timer) if(print_time){timer = get_time();func;timer = get_time() - timer;}else{func;}
+#define time(func, timer) if(print_time){double d = get_time();func;d = get_time() - d; timer += d;}else{func;}
 #define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
 /**
  * @brief Computation of tentative velocity field (f, g)
  * 
  */
 void compute_tentative_velocity() {
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OUTER)
     for (int i = 1; i < imax; i++) {
         for (int j = 1; j < jmax+1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -52,7 +52,7 @@ void compute_tentative_velocity() {
         }
     }
 
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OUTER)
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -78,12 +78,11 @@ void compute_tentative_velocity() {
     }
 
     /* f & g at external boundaries */
-    //#pragma omp parallel for
     for (int j = 1; j < jmax+1; j++) {
         f[0][j]    = u[0][j];
         f[imax][j] = u[imax][j];
     }
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OUTER)
     for (int i = 1; i < imax+1; i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
@@ -96,7 +95,7 @@ void compute_tentative_velocity() {
  * 
  */
 void compute_rhs() {
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OUTER)
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1;j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
@@ -112,7 +111,7 @@ void compute_rhs() {
 void update_p() {
     for (int rb = 0; rb < 2; rb++) {
 
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(static, OUTER)
         for (int i = 1; i < imax+1; i++) {
             for (int j = 1; j < jmax+1; j++) {
 
@@ -148,7 +147,7 @@ void update_p() {
  * @brief computation of residual
 */
 double compute_res(double res) {
-    #pragma omp parallel for reduction(+:res)
+    #pragma omp parallel for reduction(+:res) schedule(static, OUTER)
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
@@ -182,9 +181,8 @@ double poisson() {
     int iter;
     double res = 0.0;
     /* Calculate sum of squares */
-    #pragma omp parallel for reduction(+:p0)
+    #pragma omp parallel for reduction(+:p0) schedule(static, OUTER)
     for (int i = 1; i < imax+1; i++) {
-        #pragma omp parallel for reduction(+:p0)
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
         }
@@ -199,7 +197,6 @@ double poisson() {
         update_p();
         
         res = compute_res(res) / p0;
-        
         /* convergence? */
         if (res < eps) break;
     }
@@ -213,7 +210,7 @@ double poisson() {
  * velocity values and the new pressure matrix
  */
 void update_velocity() {
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OUTER)
     for (int i = 1; i < imax-2; i++) {
         for (int j = 1; j < jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -223,7 +220,7 @@ void update_velocity() {
         }
     }
     
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OUTER)
     for (int i = 1; i < imax-1; i++) {
         for (int j = 1; j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */

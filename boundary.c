@@ -17,6 +17,7 @@ void apply_boundary_conditions() {
         v[imax+1][j] = v[imax][j];
     }
 
+    #pragma omp parallel for schedule(static, OUTER)
     for (int i = 0; i < imax+2; i++) {
         /* The vertical velocity approaches 0 at the north and south
          * boundaries, but fluid flows freely in the horizontal direction */
@@ -31,6 +32,7 @@ void apply_boundary_conditions() {
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
+    #pragma omp parallel for schedule(static, OUTER)
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & B_NSEW) {
