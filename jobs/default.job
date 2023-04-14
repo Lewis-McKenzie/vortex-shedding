@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task=1                      # ...with a single CPU
 #SBATCH --mem=1gb                              # Job memory request
 #SBATCH --time=00:10:00                        # Time limit hrs:min:sec
-#SBATCH --output=viking-logs/OpenMP-Default-%j .log               # Standard output and error log
+#SBATCH --output=viking-logs/OpenMP-Default-%j.log               # Standard output and error log
 #SBATCH --partition=teach                        # Select the GPU nodes...
 
 bench='benchmarks/main/default'
