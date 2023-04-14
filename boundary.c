@@ -7,8 +7,6 @@
 // loop between 1 and imax+1
 #define init_outer_loop(index, limit) {index = rank * imax / size + 1;limit = (rank+1) * imax / size + 1;}
 
-
-
 /**
  * @brief Given the boundary conditions defined by the flag matrix, update
  * the u and v velocities. Also enforce the boundary conditions at the
@@ -33,10 +31,10 @@ void apply_boundary_conditions() {
 
     int i, i_limit;
     init_outer_loop(i, i_limit);
-    if (i == 1) {
+    if (rank == 0) {
         i--;
     }
-    if (i_limit == imax+1) {
+    if (rank == size-1) {
         i_limit++;
     }
 
@@ -54,8 +52,10 @@ void apply_boundary_conditions() {
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
-    init_outer_loop(i, i_limit);
-    for (; i < i_limit && i < imax+1; i++) {
+    int i_start;
+    init_outer_loop(i_start, i_limit);
+    //todo lhs column of block is lost  
+    for (i = i_start; i < i_limit && i < imax+1; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & B_NSEW) {
                 switch (flag[i][j]) {
@@ -118,6 +118,9 @@ void apply_boundary_conditions() {
             v[0][j] = 2 * vi - v[1][j];
         }        
     }
-    swap_edge_arrays((void **) u, MPI_DOUBLE);
-    swap_edge_arrays((void **) v, MPI_DOUBLE);
+    //sync_u_boundary();
+
+    sync((void **) u, MPI_DOUBLE);
+    sync((void **) v, MPI_DOUBLE);
+    
 }

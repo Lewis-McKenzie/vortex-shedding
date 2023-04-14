@@ -9,5 +9,6 @@ void swap_edge_arrays(void** target, MPI_Datatype datatype);
 void swap_right(void** target, MPI_Datatype datatype);
 void swap_left(void** target, MPI_Datatype datatype);
 void alt(void** target, MPI_Datatype datatype);
+void sync_u_boundary();
 
 #endif

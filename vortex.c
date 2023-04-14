@@ -37,7 +37,7 @@ double get_time() {
  */
 void compute_tentative_velocity() {
     int i, i_limit;
-    init_outer_loop(i, i_limit);    
+    init_outer_loop(i, i_limit);
 
     for (;i < i_limit && i < imax; i++) {
 
@@ -107,8 +107,8 @@ void compute_tentative_velocity() {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
     }
-    swap_edge_arrays((void **)g, MPI_DOUBLE);
-    swap_edge_arrays((void **)f, MPI_DOUBLE);
+    sync((void **)g, MPI_DOUBLE);
+    sync((void **)f, MPI_DOUBLE);
 }
 
 
@@ -129,7 +129,7 @@ void compute_rhs() {
             }
         }
     }
-    swap_edge_arrays((void **)rhs, MPI_DOUBLE);
+    sync((void **)rhs, MPI_DOUBLE);
 }
 
 
@@ -188,12 +188,12 @@ double poisson() {
                 }
             }
         }
-        swap_edge_arrays((void **) p, MPI_DOUBLE);
+        sync((void **) p, MPI_DOUBLE);
 
         
         /* computation of residual */
         init_outer_loop(i, i_limit);
-        for (; i < i_limit && imax+1; i++) {
+        for (; i < i_limit && i < imax+1; i++) {
             for (int j = 1; j < jmax+1; j++) {
                 if (flag[i][j] & C_F) {
                     double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
@@ -246,8 +246,8 @@ void update_velocity() {
             }
         }
     }
-    swap_edge_arrays((void **) u, MPI_DOUBLE);
-    swap_edge_arrays((void **) v, MPI_DOUBLE);
+    sync((void **) u, MPI_DOUBLE);
+    sync((void **) v, MPI_DOUBLE);
 }
 
 
@@ -318,7 +318,7 @@ void main_loop() {
             print_timer("poisson", p_time);
             print_timer("update_velocity", v_time);
             print_timer("apply_boundary_conditions", boundary_time);
-            print_timer("swap_edge_arrays", sync_time);
+            print_timer("sync", sync_time);
             if(print_time)
                 printf("\n");
 
@@ -328,10 +328,6 @@ void main_loop() {
         }
 
     } /* End of main loop */
-
-    if (rank==size-1) {
-        printf("%lf\n", p[393][32]);
-    }
 
     sync_all();
     if (rank == 0) {
