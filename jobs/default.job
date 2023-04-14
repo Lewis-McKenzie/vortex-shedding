@@ -1,16 +1,19 @@
 #!/bin/bash
-#SBATCH --job-name=cuda_job                    # Job name
-#SBATCH --ntasks=1                             # Run a single task...
+#SBATCH --job-name=OpenMP-Default-%j                    # Job name
+#SBATCH --ntasks=4            # Run a single task...
 #SBATCH --cpus-per-task=1                      # ...with a single CPU
 #SBATCH --mem=1gb                              # Job memory request
 #SBATCH --time=00:10:00                        # Time limit hrs:min:sec
-#SBATCH --output=default%j.log               # Standard output and error log
+#SBATCH --output=viking-logs/OpenMP-Default-%j .log               # Standard output and error log
 #SBATCH --partition=teach                        # Select the GPU nodes...
 
 bench='benchmarks/main/default'
-test='benchmarks/CUDA/default'
+test='benchmarks/OpenMP/default'
 
 mkdir -p $dir/$test
+
+n=16
+export OMP_NUM_THREADS=$n
 
 time ./vortex -d 0.0025 -o $test/vortex 2>&1 | tee $dir/$test/output.log
 
