@@ -9,6 +9,6 @@ test='benchmarks/CUDA/default'
 
 mkdir -p $dir/$test
 
-./vortex -d 0.0025 -o $test/vortex 2>&1 | tee $dir/$test/output.log
+time ./vortex -d 0.0025 -o $test/vortex 2>&1 | tee $dir/$test/output.log
 
 python3 ./validation/validate.py $dir/$bench/vortex.vtk $dir/$test/vortex.vtk

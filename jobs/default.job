@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=cuda_job                    # Job name
+#SBATCH --job-name=CUDA-%j                    # Job name
 #SBATCH --ntasks=1                             # Run a single task...
 #SBATCH --cpus-per-task=1                      # ...with a single CPU
 #SBATCH --mem=1gb                              # Job memory request
-#SBATCH --time=01:00:00                        # Time limit hrs:min:sec
-#SBATCH --output=cuda_job_%j.log               # Standard output and error log
+#SBATCH --time=00:10:00                        # Time limit hrs:min:sec
+#SBATCH --output=viking-logs/CUDA-%j.log               # Standard output and error log
 #SBATCH --partition=gpu                        # Select the GPU nodes...
 #SBATCH --gres=gpu:1                           # ...and a single GPU
 
@@ -21,6 +21,6 @@ test='benchmarks/CUDA/default'
 
 mkdir -p $dir/$test
 
-./vortex -d 0.0025 -o $test/vortex 2>&1 | tee $dir/$test/output.log
+time ./vortex -d 0.0025 -o $test/vortex 2>&1 | tee $dir/$test/output.log
 
 python3 ./validation/validate.py ./$dir/$bench/vortex.vtk ./$dir/$test/vortex.vtk
