@@ -40,7 +40,7 @@ double get_time() {
 void compute_tentative_velocity() {
     int i_start, i_limit;
     init_outer_loop(i_start, i_limit);
-    //debug_loop(i, i_limit);
+    //debug_loop(i_start, i_limit);
 
     for (int i = i_start;(i < i_limit) && (i < imax); i++) {
         for (int j = 1; j < jmax+1; j++) {
@@ -162,7 +162,7 @@ double poisson() {
     for (iter = 0; iter < itermax; iter++) {
 
         for (int rb = 0; rb < 2; rb++) {
-
+            sync((void **) p, MPI_DOUBLE);
             init_outer_loop(i_start, i_limit);
             for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
                 for (int j = 1; j < jmax+1; j++) {

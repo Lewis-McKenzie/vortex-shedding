@@ -1,3 +1,4 @@
-Step        0, Time: 2.50000000e-03 (del_t: 2.50000000e-03), Residual: 5.20159315e+02
-Step        1, Time: 2.50000000e-03, Residual: 5.20159315e+02
+rank: 0 of 2 start 1 end 257
+rank: 1 of 2 start 257 end 513
+Step        0, Time: 0.00000000e+00, Residual: 5.20667195e+02
 Simulation complete.

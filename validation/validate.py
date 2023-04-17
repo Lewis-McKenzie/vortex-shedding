@@ -85,6 +85,8 @@ def main() -> None:
     assert valid, "Test result does not match the benchmark"
 
 def print_stats(name: str, diffs, bench, test) -> None:
+    if len(diffs) == 0:
+        return
     d_abs = sorted(diffs, key=lambda d: d[0][0])
     d_rel = sorted(diffs, key=lambda d: d[0][1])
     print(f"{name} diffs: {len(diffs)}\n"
