@@ -14,7 +14,7 @@
 
 #define C_F      0x0010    /* This cell is a fluid cell */
 
-#define OUTER 32
+#define OUTER 86
 #define INNER 64
 
 extern double xlength;     /* Width of simulated domain */

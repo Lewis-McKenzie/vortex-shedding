@@ -21,7 +21,7 @@ double get_time() {
 }
 
 #define time(func, timer) if(print_time){double d = get_time();func;d = get_time() - d; timer += d;}else{func;}
-#define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
+#define print_timer(name, timer) if(print_time)printf("%s: %lfs\n", name, timer);
 /**
  * @brief Computation of tentative velocity field (f, g)
  * 
@@ -319,9 +319,8 @@ void main_loop() {
  * @return int The return value of the application
  */
 int main(int argc, char *argv[]) {
-    double setup_time, main_loop_time;
+    double main_loop_time;
 
-    setup_time = get_time();
     set_defaults();
     parse_args(argc, argv);
     setup();
@@ -330,10 +329,8 @@ int main(int argc, char *argv[]) {
 
     allocate_arrays();
     problem_set_up();
-    setup_time = get_time() - setup_time;
 
     time(main_loop(), main_loop_time);
-    print_timer("Setup", setup_time);
     print_timer("Main loop", main_loop_time);
 
     free_arrays();
