@@ -3,6 +3,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <mpi.h>
+#include <time.h>
 
 #include "vtk.h"
 #include "data.h"
@@ -62,6 +63,12 @@ void check_mpi(int ierr) {
 			MPI_Finalize();             /* abort*/
 		}
 	}
+}
+
+struct timespec timer;
+double get_time() {
+	clock_gettime(CLOCK_MONOTONIC, &timer); 
+	return (double) (timer.tv_sec + timer.tv_nsec / 1000000000.0);
 }
 
 /**

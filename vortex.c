@@ -15,22 +15,11 @@
 #include "args.h"
 #include "mpi_tools.h"
 
-struct timespec timer;
-double get_time() {
-	clock_gettime(CLOCK_MONOTONIC, &timer); 
-	return (double) (timer.tv_sec + timer.tv_nsec / 1000000000.0);
-}
-
-#define time(func, timer) if(print_time){timer = get_time();func;timer = get_time() - timer;}else{func;}
+#define time(func, timer) if(print_time){double tim = get_time();func;tim = get_time() - tim; timer += tim;}else{func;}
 #define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
 
 // loop between 1 and imax+1
 #define init_outer_loop(index, limit) {index = rank * imax / size + 1;limit = (rank+1) * imax / size + 1;}
-
-#define debug_loop(i, limit) printf("rank: %d of %d start %d end %d\n", rank, size, i, limit)
-
-
-#define test printf("here\n");
 
 
 /**
@@ -40,7 +29,6 @@ double get_time() {
 void compute_tentative_velocity() {
     int i_start, i_limit;
     init_outer_loop(i_start, i_limit);
-    //debug_loop(i_start, i_limit);
 
     for (int i = i_start;(i < i_limit) && (i < imax); i++) {
         for (int j = 1; j < jmax+1; j++) {
@@ -109,8 +97,8 @@ void compute_tentative_velocity() {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
     }
-    sync((void **)g, MPI_DOUBLE);
-    sync((void **)f, MPI_DOUBLE);
+    swap_edge_arrays((void **)g, MPI_DOUBLE);
+    swap_edge_arrays((void **)f, MPI_DOUBLE);
 }
 
 
@@ -131,7 +119,7 @@ void compute_rhs() {
             }
         }
     }
-    sync((void **)rhs, MPI_DOUBLE);
+    swap_edge_arrays((void **)rhs, MPI_DOUBLE);
 }
 
 
@@ -162,7 +150,7 @@ double poisson() {
     for (iter = 0; iter < itermax; iter++) {
 
         for (int rb = 0; rb < 2; rb++) {
-            sync((void **) p, MPI_DOUBLE);
+            swap_edge_arrays((void **) p, MPI_DOUBLE);
             init_outer_loop(i_start, i_limit);
             for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
                 for (int j = 1; j < jmax+1; j++) {
@@ -190,7 +178,7 @@ double poisson() {
                 }
             }
         }
-        sync((void **) p, MPI_DOUBLE);
+        swap_edge_arrays((void **) p, MPI_DOUBLE);
 
         
         /* computation of residual */
@@ -248,8 +236,8 @@ void update_velocity() {
             }
         }
     }
-    sync((void **) u, MPI_DOUBLE);
-    sync((void **) v, MPI_DOUBLE);
+    swap_edge_arrays((void **) u, MPI_DOUBLE);
+    swap_edge_arrays((void **) v, MPI_DOUBLE);
 }
 
 
@@ -261,20 +249,30 @@ void set_timestep_interval() {
     /* del_t satisfying CFL conditions */
     if (tau >= 1.0e-10) { /* else no time stepsize control */
         double umax = 1.0e-10;
-        double vmax = 1.0e-10; 
-        
-        for (int i = 0; i < imax+2; i++) {
+        double vmax = 1.0e-10;
+
+        int start, end;
+        init_outer_loop(start, end)
+        if (rank == 0)
+            start = 0;
+        if (rank == size-1)
+            end++;
+        for (int i = start; i < end && i < imax+2; i++) {
             for (int j = 1; j < jmax+2; j++) {
                 umax = fmax(fabs(u[i][j]), umax);
             }
         }
 
-        for (int i = 1; i < imax+2; i++) {
+        if (rank == 0)
+            start = 1;
+        for (int i = start; i < imax+2; i++) {
             for (int j = 0; j < jmax+2; j++) {
                 vmax = fmax(fabs(v[i][j]), vmax);
             }
         }
 
+        MPI_Allreduce(MPI_IN_PLACE, &umax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, &vmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
         double deltu = delx / umax;
         double deltv = dely / vmax; 
         double deltRe = 1.0 / (1.0 / (delx * delx) + 1 / (dely * dely)) * Re / 2.0;
@@ -290,16 +288,13 @@ void set_timestep_interval() {
 
 
 void main_loop() {
-    double res, t, tv_time, rhs_time, p_time, v_time, boundary_time, sync_time;
+    double res, t, tv_time, rhs_time, p_time, v_time, boundary_time;
 
     /* Main loop */
     int iters = 0;
     for (t = 0.0; t < t_end; t += del_t, iters++) {
         if (!fixed_dt)
             set_timestep_interval();
-            // Average the time
-            MPI_Allreduce(MPI_IN_PLACE, &t, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-            t = t / size;
 
         time(compute_tentative_velocity(), tv_time);
 
@@ -311,8 +306,6 @@ void main_loop() {
 
         time(apply_boundary_conditions(), boundary_time);
 
-        //time(sync_all(), sync_time);
-
         if ((iters % output_freq == 0) && (rank == 0)) {
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
             print_timer("compute_tentative_velocity", tv_time);
@@ -320,13 +313,16 @@ void main_loop() {
             print_timer("poisson", p_time);
             print_timer("update_velocity", v_time);
             print_timer("apply_boundary_conditions", boundary_time);
-            print_timer("sync", sync_time);
+            print_timer("io bound", io_bound_time);
             if(print_time)
                 printf("\n");
 
-
-            if ((!no_output) && (enable_checkpoints) && (rank == 0))
-                write_checkpoint(iters, t+del_t);
+            if ((!no_output) && (enable_checkpoints)) {
+                sync_all();
+                if (rank==0) {
+                    write_checkpoint(iters, t+del_t);
+                }
+            }
         }
 
     } /* End of main loop */

@@ -118,7 +118,7 @@ void apply_boundary_conditions() {
     }
     //sync_u_boundary();
 
-    sync((void **) u, MPI_DOUBLE);
-    sync((void **) v, MPI_DOUBLE);
+    swap_edge_arrays((void **) u, MPI_DOUBLE);
+    swap_edge_arrays((void **) v, MPI_DOUBLE);
     
 }
