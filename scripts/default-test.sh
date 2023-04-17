@@ -6,7 +6,7 @@ make
 
 bench_dir='benchmarks/main/default'
 test_dir='benchmarks/MPI/default'
-n=2
+n=4
 
 mkdir -p $dir/$test_dir
 

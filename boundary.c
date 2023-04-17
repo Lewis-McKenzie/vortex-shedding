@@ -38,7 +38,7 @@ void apply_boundary_conditions() {
         i_limit++;
     }
 
-    for (int i = i_start; i < i_limit && i < imax+2; i++) {
+    for (int i = i_start; (i < i_limit) && (i < imax+2); i++) {
         /* The vertical velocity approaches 0 at the north and south
         * boundaries, but fluid flows freely in the horizontal direction */
         v[i][jmax] = 0.0;
@@ -53,7 +53,7 @@ void apply_boundary_conditions() {
      * tend towards zero in these cells.
      */
     init_outer_loop(i_start, i_limit);
-    for (int i = i_start; i < i_limit && i < imax+1; i++) {
+    for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & B_NSEW) {
                 switch (flag[i][j]) {

@@ -42,7 +42,7 @@ void compute_tentative_velocity() {
     init_outer_loop(i_start, i_limit);
     //debug_loop(i, i_limit);
 
-    for (int i = i_start;i < i_limit && i < imax; i++) {
+    for (int i = i_start;(i < i_limit) && (i < imax); i++) {
         for (int j = 1; j < jmax+1; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
@@ -67,7 +67,7 @@ void compute_tentative_velocity() {
     }
 
     init_outer_loop(i_start, i_limit);
-    for (int i = i_start; i < i_limit && i < imax+1; i++) {
+    for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
         for (int j = 1; j < jmax; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
@@ -105,7 +105,7 @@ void compute_tentative_velocity() {
     }
 
     init_outer_loop(i_start, i_limit);
-    for (int i = i_start; i < i_limit && i < imax+1; i++) {
+    for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
     }
@@ -121,7 +121,7 @@ void compute_tentative_velocity() {
 void compute_rhs() {
     int i_start, i_limit;
     init_outer_loop(i_start, i_limit);
-    for (int i = i_start; i < i_limit && i < imax+1; i++) {
+    for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
         for (int j = 1;j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
                 /* only for fluid and non-surface cells */
@@ -146,7 +146,7 @@ double poisson() {
     /* Calculate sum of squares */
     int i_start, i_limit;
     init_outer_loop(i_start, i_limit);
-    for (int i = i_start; i < i_limit && i < imax+1; i++) {
+    for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
         }
@@ -164,7 +164,7 @@ double poisson() {
         for (int rb = 0; rb < 2; rb++) {
 
             init_outer_loop(i_start, i_limit);
-            for (int i = i_start; i < i_limit && i < imax+1; i++) {
+            for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
                 for (int j = 1; j < jmax+1; j++) {
                     if ((i + j) % 2 != rb) { continue; }
                     if (flag[i][j] == (C_F | B_NSEW)) {
@@ -195,7 +195,7 @@ double poisson() {
         
         /* computation of residual */
         init_outer_loop(i_start, i_limit);
-        for (int i = i_start; i < i_limit && i < imax+1; i++) {
+        for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
             for (int j = 1; j < jmax+1; j++) {
                 if (flag[i][j] & C_F) {
                     double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
@@ -230,7 +230,7 @@ double poisson() {
 void update_velocity() {
     int i_start, i_limit;
     init_outer_loop(i_start, i_limit);
-    for (int i = i_start; i < i_limit && i < imax-2; i++) {
+    for (int i = i_start; (i < i_limit) && (i < imax-2); i++) {
         for (int j = 1; j < jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
@@ -240,7 +240,7 @@ void update_velocity() {
     }
 
     init_outer_loop(i_start, i_limit);
-    for (int i = i_start; i < i_limit && i < imax-1; i++) {
+    for (int i = i_start; (i < i_limit) && (i < imax-1); i++) {
         for (int j = 1; j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
@@ -325,7 +325,7 @@ void main_loop() {
                 printf("\n");
 
 
-            if ((!no_output) && (enable_checkpoints))
+            if ((!no_output) && (enable_checkpoints) && (rank == 0))
                 write_checkpoint(iters, t+del_t);
         }
 
