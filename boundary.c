@@ -29,16 +29,16 @@ void apply_boundary_conditions() {
         }
     }
 
-    int i, i_limit;
-    init_outer_loop(i, i_limit);
+    int i_start, i_limit;
+    init_outer_loop(i_start, i_limit);
     if (rank == 0) {
-        i--;
+        i_start--;
     }
     if (rank == size-1) {
         i_limit++;
     }
 
-    for (; i < i_limit && i < imax+2; i++) {
+    for (int i = i_start; i < i_limit && i < imax+2; i++) {
         /* The vertical velocity approaches 0 at the north and south
         * boundaries, but fluid flows freely in the horizontal direction */
         v[i][jmax] = 0.0;
@@ -52,14 +52,12 @@ void apply_boundary_conditions() {
      * internal obstacle cells. This forces the u and v velocity to
      * tend towards zero in these cells.
      */
-    int i_start;
     init_outer_loop(i_start, i_limit);
-    //todo lhs column of block is lost  
-    for (i = i_start; i < i_limit && i < imax+1; i++) {
+    for (int i = i_start; i < i_limit && i < imax+1; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & B_NSEW) {
                 switch (flag[i][j]) {
-                    case B_N: 
+                    case B_N:
                         v[i][j]   = 0.0;
                         u[i][j]   = -u[i][j+1];
                         u[i-1][j] = -u[i-1][j+1];
@@ -74,7 +72,7 @@ void apply_boundary_conditions() {
                         u[i][j]   = -u[i][j-1];
                         u[i-1][j] = -u[i-1][j-1];
                         break;
-                    case B_W: 
+                    case B_W:
                         u[i-1][j] = 0.0;
                         v[i][j]   = -v[i-1][j];
                         v[i][j-1] = -v[i-1][j-1];

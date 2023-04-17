@@ -53,10 +53,20 @@ class Data:
                     rel_err = self.rel_err(p, other.p[i][j])
                     p_diffs.append(((abs_err, rel_err), (i, j)))
         return p_diffs
+    
+    def flag_diffs(self, other: object) -> List[Tuple[Tuple[float, float], Tuple[int, int]]]:
+        flag_diffs = []
+        for i, row in enumerate(self.flag):
+            for j, flag in enumerate(row):
+                if flag != other.flag[i][j]:
+                    abs_err = self.abs_err(flag, other.flag[i][j])
+                    rel_err = self.rel_err(flag, other.flag[i][j])
+                    flag_diffs.append(((abs_err, rel_err), (i, j)))
+        return flag_diffs
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, Data):
             return False
         if (self.dim_x, self.dim_y) != (__o.dim_x, __o.dim_y):
             return False
-        return self.u_diffs(__o) == [] and self.v_diffs(__o) == [] and self.p_diffs(__o) == []
+        return self.flag_diffs(__o) == [] and self.u_diffs(__o) == [] and self.v_diffs(__o) == [] and self.p_diffs(__o) == []

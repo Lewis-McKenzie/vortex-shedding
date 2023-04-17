@@ -16,9 +16,9 @@ void sync_all() {
 }
 
 void sync(void** target, MPI_Datatype datatype) {
-    combine_2d_array(target, datatype);
-    broadcast(target, datatype);
-    //alt(target, datatype);
+    //combine_2d_array(target, datatype);
+    //broadcast(target, datatype);
+    alt(target, datatype);
 }
 
 
@@ -32,12 +32,19 @@ void alt(void** target, MPI_Datatype datatype) {
         count++;
     }
 
-    void* temp = malloc(sizeof(double)*count*(jmax+2));
-    memcpy(temp, target[ptr], sizeof(double)*count*(jmax+2));
-    
-    MPI_Allgather(temp, count*(jmax+2), datatype, target[0], (imax+2) * (jmax+2), datatype, MPI_COMM_WORLD);
 
-    free(temp);
+    int *revscount = malloc(sizeof(int)*size);
+    int *displ = malloc(sizeof(int)*size);
+    for (int i = 0; i < size; i++) {
+        revscount[i] = (imax/size)*(jmax+2);
+        displ[i] = (i * imax / size + 1) * (jmax+2);
+    }
+    revscount[0] += jmax+2;
+    revscount[size-1] += jmax+2;
+    displ[0] = 0;
+    
+    MPI_Allgatherv(MPI_IN_PLACE, count*(jmax+2), datatype, target[0], revscount, displ, datatype, MPI_COMM_WORLD);
+
 }
 
 void broadcast(void** target, MPI_Datatype datatype) {
