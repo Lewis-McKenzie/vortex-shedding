@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=MPI-Default-%j                    # Job name
 #SBATCH --time=00:10:00                 # Maximum time (HH:MM:SS)
-#SBATCH --ntasks=2                     # run on a single CPU
+#SBATCH --ntasks=2
 #SBATCH --output=viking-logs/MPI-Default-%j.log
 #SBATCH --partition=teach               # run in the teaching queue
 #SBATCH --cpus-per-task=1
@@ -12,7 +12,7 @@
 
 bench_dir='benchmarks/main/default'
 test_dir='benchmarks/MPI/default'
-n=2
+n=8
 
 mkdir -p $dir/$test_dir
 
