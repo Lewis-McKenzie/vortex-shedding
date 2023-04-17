@@ -1,143 +1,149 @@
 Step        0, Time: 2.50000000e-03 (del_t: 2.50000000e-03), Residual: 5.20667187e+02
-compute_tentative_velocity: 0.000347s
-compute_rhs: 0.000090s
-poisson: 0.019952s
-update_velocity: 0.000195s
-apply_boundary_conditions: 0.000029s
+compute_tentative_velocity: 0.000438s
+compute_rhs: 0.000086s
+poisson: 0.014473s
+update_velocity: 0.000106s
+apply_boundary_conditions: 0.000014s
 
 Step      100, Time: 2.52500000e-01 (del_t: 2.50000000e-03), Residual: 2.18144369e+01
-compute_tentative_velocity: 0.021953s
-compute_rhs: 0.003670s
-poisson: 1.314181s
-update_velocity: 0.007399s
-apply_boundary_conditions: 0.001349s
+compute_tentative_velocity: 0.023263s
+compute_rhs: 0.003768s
+poisson: 1.326193s
+update_velocity: 0.005885s
+apply_boundary_conditions: 0.001319s
 
 Step      200, Time: 5.02500000e-01 (del_t: 2.50000000e-03), Residual: 9.79492453e+00
-compute_tentative_velocity: 0.048731s
-compute_rhs: 0.007358s
-poisson: 2.422977s
-update_velocity: 0.011839s
-apply_boundary_conditions: 0.002568s
+compute_tentative_velocity: 0.042202s
+compute_rhs: 0.007297s
+poisson: 2.426215s
+update_velocity: 0.010653s
+apply_boundary_conditions: 0.002531s
 
 Step      300, Time: 7.52500000e-01 (del_t: 2.50000000e-03), Residual: 2.43698032e+01
-compute_tentative_velocity: 0.068786s
-compute_rhs: 0.010871s
-poisson: 3.524113s
-update_velocity: 0.016363s
-apply_boundary_conditions: 0.003797s
+compute_tentative_velocity: 0.077979s
+compute_rhs: 0.011305s
+poisson: 3.693685s
+update_velocity: 0.016191s
+apply_boundary_conditions: 0.003778s
 
 Step      400, Time: 1.00250000e+00 (del_t: 2.50000000e-03), Residual: 1.29524914e+01
-compute_tentative_velocity: 0.091797s
-compute_rhs: 0.014416s
-poisson: 4.821966s
-update_velocity: 0.023167s
-apply_boundary_conditions: 0.005050s
+compute_tentative_velocity: 0.097003s
+compute_rhs: 0.014819s
+poisson: 4.792453s
+update_velocity: 0.020640s
+apply_boundary_conditions: 0.004980s
 
 Step      500, Time: 1.25250000e+00 (del_t: 2.50000000e-03), Residual: 1.06404089e+00
-compute_tentative_velocity: 0.111895s
-compute_rhs: 0.018008s
-poisson: 5.985241s
-update_velocity: 0.029294s
-apply_boundary_conditions: 0.006292s
+compute_tentative_velocity: 0.115891s
+compute_rhs: 0.018450s
+poisson: 5.895766s
+update_velocity: 0.025239s
+apply_boundary_conditions: 0.006188s
 
 Step      600, Time: 1.50250000e+00 (del_t: 2.50000000e-03), Residual: 2.93438136e+00
-compute_tentative_velocity: 0.131865s
-compute_rhs: 0.021562s
-poisson: 7.083640s
-update_velocity: 0.033772s
-apply_boundary_conditions: 0.007509s
+compute_tentative_velocity: 0.134727s
+compute_rhs: 0.022024s
+poisson: 6.990791s
+update_velocity: 0.029612s
+apply_boundary_conditions: 0.007401s
 
 Step      700, Time: 1.75250000e+00 (del_t: 2.50000000e-03), Residual: 2.60363655e+00
-compute_tentative_velocity: 0.152066s
-compute_rhs: 0.026249s
-poisson: 8.172296s
-update_velocity: 0.039187s
-apply_boundary_conditions: 0.009148s
+compute_tentative_velocity: 0.153696s
+compute_rhs: 0.025540s
+poisson: 8.140394s
+update_velocity: 0.034129s
+apply_boundary_conditions: 0.008610s
 
 Step      800, Time: 2.00250000e+00 (del_t: 2.50000000e-03), Residual: 7.08624667e-01
-compute_tentative_velocity: 0.171981s
-compute_rhs: 0.029853s
-poisson: 9.261939s
-update_velocity: 0.043571s
-apply_boundary_conditions: 0.010475s
+compute_tentative_velocity: 0.172641s
+compute_rhs: 0.029059s
+poisson: 9.231199s
+update_velocity: 0.038708s
+apply_boundary_conditions: 0.009821s
 
 Step      900, Time: 2.25250000e+00 (del_t: 2.50000000e-03), Residual: 3.03787212e-01
-compute_tentative_velocity: 0.191894s
-compute_rhs: 0.034517s
-poisson: 10.417195s
-update_velocity: 0.048251s
-apply_boundary_conditions: 0.011699s
+compute_tentative_velocity: 0.191710s
+compute_rhs: 0.032630s
+poisson: 10.324781s
+update_velocity: 0.043148s
+apply_boundary_conditions: 0.011074s
 
 Step     1000, Time: 2.50250000e+00 (del_t: 2.50000000e-03), Residual: 5.12498955e-01
-compute_tentative_velocity: 0.212543s
-compute_rhs: 0.038177s
-poisson: 11.520295s
-update_velocity: 0.052943s
-apply_boundary_conditions: 0.012955s
+compute_tentative_velocity: 0.210716s
+compute_rhs: 0.036160s
+poisson: 11.411217s
+update_velocity: 0.047506s
+apply_boundary_conditions: 0.012278s
 
 Step     1100, Time: 2.75250000e+00 (del_t: 2.50000000e-03), Residual: 2.80622606e-01
-compute_tentative_velocity: 0.232441s
-compute_rhs: 0.041692s
-poisson: 12.606254s
-update_velocity: 0.057289s
-apply_boundary_conditions: 0.014167s
+compute_tentative_velocity: 0.229702s
+compute_rhs: 0.039744s
+poisson: 12.497718s
+update_velocity: 0.051910s
+apply_boundary_conditions: 0.013482s
 
 Step     1200, Time: 3.00250000e+00 (del_t: 2.50000000e-03), Residual: 2.20408208e-01
-compute_tentative_velocity: 0.252249s
-compute_rhs: 0.045208s
-poisson: 13.693057s
-update_velocity: 0.061689s
-apply_boundary_conditions: 0.015384s
+compute_tentative_velocity: 0.248572s
+compute_rhs: 0.043258s
+poisson: 13.585006s
+update_velocity: 0.056426s
+apply_boundary_conditions: 0.014714s
 
 Step     1300, Time: 3.25250000e+00 (del_t: 2.50000000e-03), Residual: 2.45777919e-01
-compute_tentative_velocity: 0.272397s
-compute_rhs: 0.048744s
-poisson: 14.780364s
-update_velocity: 0.066080s
-apply_boundary_conditions: 0.016598s
+compute_tentative_velocity: 0.267371s
+compute_rhs: 0.046770s
+poisson: 14.667126s
+update_velocity: 0.060777s
+apply_boundary_conditions: 0.015917s
 
 Step     1400, Time: 3.50250000e+00 (del_t: 2.50000000e-03), Residual: 2.88746945e-01
-compute_tentative_velocity: 0.292394s
-compute_rhs: 0.052260s
-poisson: 15.877472s
-update_velocity: 0.071268s
-apply_boundary_conditions: 0.017816s
+compute_tentative_velocity: 0.286257s
+compute_rhs: 0.050390s
+poisson: 15.750544s
+update_velocity: 0.065220s
+apply_boundary_conditions: 0.017124s
 
 Step     1500, Time: 3.75250000e+00 (del_t: 2.50000000e-03), Residual: 3.60992438e-01
-compute_tentative_velocity: 0.312201s
-compute_rhs: 0.055792s
-poisson: 16.984990s
-update_velocity: 0.075879s
-apply_boundary_conditions: 0.019034s
+compute_tentative_velocity: 0.305129s
+compute_rhs: 0.053906s
+poisson: 16.835345s
+update_velocity: 0.069690s
+apply_boundary_conditions: 0.018329s
 
 Step     1600, Time: 4.00250000e+00 (del_t: 2.50000000e-03), Residual: 4.70087848e-01
-compute_tentative_velocity: 0.332015s
-compute_rhs: 0.059304s
-poisson: 18.077459s
-update_velocity: 0.080339s
-apply_boundary_conditions: 0.020247s
+compute_tentative_velocity: 0.324139s
+compute_rhs: 0.057422s
+poisson: 17.917354s
+update_velocity: 0.074040s
+apply_boundary_conditions: 0.019534s
 
 Step     1700, Time: 4.25250000e+00 (del_t: 2.50000000e-03), Residual: 6.10473241e-01
-compute_tentative_velocity: 0.351870s
-compute_rhs: 0.062889s
-poisson: 19.189204s
-update_velocity: 0.092480s
-apply_boundary_conditions: 0.021472s
+compute_tentative_velocity: 0.343322s
+compute_rhs: 0.060992s
+poisson: 18.998993s
+update_velocity: 0.078392s
+apply_boundary_conditions: 0.020740s
 
 Step     1800, Time: 4.50250000e+00 (del_t: 2.50000000e-03), Residual: 7.39568473e-01
-compute_tentative_velocity: 0.375293s
-compute_rhs: 0.066409s
-poisson: 20.367990s
-update_velocity: 0.097272s
-apply_boundary_conditions: 0.022699s
+compute_tentative_velocity: 0.363535s
+compute_rhs: 0.064513s
+poisson: 20.187770s
+update_velocity: 0.083257s
+apply_boundary_conditions: 0.021963s
 
 Step     1900, Time: 4.75250000e+00 (del_t: 2.50000000e-03), Residual: 8.46241547e-01
-compute_tentative_velocity: 0.395467s
-compute_rhs: 0.070167s
-poisson: 21.603669s
-update_velocity: 0.103000s
-apply_boundary_conditions: 0.023963s
+compute_tentative_velocity: 0.384087s
+compute_rhs: 0.068030s
+poisson: 21.482669s
+update_velocity: 0.088272s
+apply_boundary_conditions: 0.023190s
 
 Step     2000, Time: 5.00000000e+00, Residual: 9.29445144e-01
+compute_tentative_velocity: 0.402901s
+compute_rhs: 0.071516s
+poisson: 22.563104s
+update_velocity: 0.092864s
+apply_boundary_conditions: 0.024381s
+
 Simulation complete.
-Main loop: 23.356668s
+Main loop: 23.212831s
