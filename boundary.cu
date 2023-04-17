@@ -27,11 +27,11 @@
 __global__ void apply_boundary_conditions(double **u, double **v, char **flag, int imax, int jmax) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int i, i_end;
-    init_outer_loop(i, i_end);
+    int i_start, i_end, j_start, j_end;
+    init_outer_loop(i_start, i_end);
 
 
-    if (i == 1) {
+    if (i_start == 1) {
         int j, j_end;
         init_inner_loop(j, j_end)
         adjust_inner_loop(j, j_end)
@@ -51,8 +51,9 @@ __global__ void apply_boundary_conditions(double **u, double **v, char **flag, i
         }
     }
 
-    adjust_outer_loop(i, i_end)
-    for (; i < i_end && i < imax+2; i++) {
+    __syncthreads();
+    adjust_outer_loop(i_start, i_end)
+    for (int i = i_start; i < i_end && i < imax+2; i++) {
         /* The vertical velocity approaches 0 at the north and south
         * boundaries, but fluid flows freely in the horizontal direction */
         v[i][jmax] = 0.0;
@@ -67,8 +68,8 @@ __global__ void apply_boundary_conditions(double **u, double **v, char **flag, i
      * tend towards zero in these cells.
      */
 
-    init_outer_loop(i, i_end);
-    for (;i >= 1 && i < i_end && i < imax+1; i++) {
+    init_outer_loop(i_start, i_end);
+    for (int i = i_start; i < i_end && i < imax+1; i++) {
         int j, j_end;
         init_inner_loop(j, j_end);
         for (;j >= 1 && j < j_end && j < jmax+1; j++) {
@@ -126,11 +127,12 @@ __global__ void apply_boundary_conditions(double **u, double **v, char **flag, i
     /* Finally, fix the horizontal velocity at the  western edge to have
      * a continual flow of fluid into the simulation.
      */
+    __syncthreads();
     if (tid == 0) {
         v[0][0] = 2 * vi-v[1][0];
     }
-    init_outer_loop(i, i_end);
-    if (i == 1) {
+    __syncthreads();
+    if (i_start == 1) {
         int j, j_end;
         init_inner_loop(j, j_end);
         for (;j >= 1 && j < j_end && j < jmax+1; j++) {

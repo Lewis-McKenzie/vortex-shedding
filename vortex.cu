@@ -13,26 +13,13 @@
 #include "boundary.cuh"
 #include "args.cuh"
 
-struct timespec timer;
-double get_time() {
-	clock_gettime(CLOCK_MONOTONIC, &timer); 
-	return (double) (timer.tv_sec + timer.tv_nsec / 1000000000.0);
-}
-
-#define time(func, timer) if(print_time && threadIdx.x == 0){timer = get_time();func;timer = get_time() - timer;}else{func;}
-
-#define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
-
 // loop between 1 and imax+1
 #define init_outer_loop(i, limit) {int i_block_start = blockIdx.x * (imax / gridDim.x);i = i_block_start + threadIdx.x * (imax / gridDim.x) / blockDim.x + 1;limit = max(i+1, i_block_start + (threadIdx.x + 1)  * (imax / gridDim.x) / blockDim.x+1);}
 
 // loop between 1 and jmax+1
 #define init_inner_loop(j, limit) {if (blockDim.x > imax / gridDim.x) {int threads = blockDim.x / (imax / gridDim.x);int iters = jmax / threads;j = (threadIdx.x % threads) * iters + 1;limit = ((threadIdx.x % threads) + 1) * iters + 1;}else {j = 1;limit = jmax+1;}}
 
-
 #define debug_cuda(i, limit) printf("thread: %d out of %d on block %d. start: %d end: %d\n", threadIdx.x, blockDim.x, blockIdx.x, i, limit);
-
-#define debug_csv(i, i_limit, j, j_limit) printf("%d,%d,%d,%d\n", i, i_limit, j, j_limit);
 
 __global__ void block_reduce_sum_buffer(double *reduction_buffer) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -67,13 +54,11 @@ double reduce(double *reduction_buffer) {
  */
 __global__ void compute_tentative_velocity(double** u, double **v, char **flag, double **f, double **g, int imax, int jmax, double del_t, double Re, double delx, double dely) {
 
-    int i, i_end;
-    init_outer_loop(i, i_end);
-    for (; i >= 1 && i < i_end && i < imax; i++) {
-
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
+    int i_start, i_end, j_start, j_end;
+    init_outer_loop(i_start, i_end);
+    init_inner_loop(j_start, j_end);
+    for (int i = i_start; i < i_end && i < imax; i++) {
+        for (int j = j_start; j < j_end && j < jmax+1; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
                 double du2dx = ((u[i][j] + u[i+1][j]) * (u[i][j] + u[i+1][j]) +
@@ -96,11 +81,8 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
         }
     }
 
-    init_outer_loop(i, i_end);
-    for (;i >= 1 && i < i_end && i < imax+1; i++) {
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax; j++) {
+    for (int i = i_start; i < i_end && i < imax+1; i++) {
+        for (int j = j_start; j < j_end && j < jmax; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
                 double duvdx = ((u[i][j] + u[i][j+1]) * (v[i][j] + v[i+1][j]) +
@@ -123,22 +105,18 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
         }
     }
 
-    init_outer_loop(i, i_end);
     /* f & g at external boundaries */
-    if (i == 1) {
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
+    if (i_start == 1) {
+        for (int j = j_start; j < j_end && j < jmax+1; j++) {
             f[0][j]    = u[0][j];
         }
     } else if (i_end == imax) {
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
+        for (int j = j_start; j < j_end && j < jmax+1; j++) {
             f[imax][j] = u[imax][j];
         }
     }
-    for (; i >= 1 && i < i_end && i < imax+1; i++) {
+    //TODO: this needs better parallelisation, may be done twice
+    for (int i = i_start; i < i_end && i < imax+1; i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
     }
@@ -150,12 +128,11 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
  * 
  */
 __global__ void compute_rhs(char **flag, double **f, double **g, double **rhs, int imax, int jmax, double del_t, double delx, double dely) {
-    int i, i_end;
-    init_outer_loop(i, i_end);
-    for (;i >=1 && i < i_end && i < imax+1; i++) {
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
+    int i_start, i_end, j_start, j_end;
+    init_outer_loop(i_start, i_end);
+    init_inner_loop(j_start, j_end);
+    for (int i = i_start; i < i_end && i < imax+1; i++) {
+        for (int j = j_start; j < j_end && j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
                 /* only for fluid and non-surface cells */
                 rhs[i][j] = ((f[i][j] - f[i-1][j]) / delx + 
@@ -170,12 +147,11 @@ __global__ void compute_rhs(char **flag, double **f, double **g, double **rhs, i
 __global__ void init_p0(double **p, char **flag, int imax, int jmax, double *reduction_buffer) {
     double p0 = 0.0;
     /* Calculate sum of squares */
-    int i, i_end;
-    init_outer_loop(i, i_end);
-    for (;i >= 1 && i < i_end && i < imax+1; i++) {
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
+    int i_start, i_end, j_start, j_end;
+    init_outer_loop(i_start, i_end);
+    init_inner_loop(j_start, j_end);
+    for (int i = i_start; i < i_end && i < imax+1; i++) {
+        for (int j = j_start; j < j_end && j < jmax+1; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
         }
     }
@@ -183,15 +159,13 @@ __global__ void init_p0(double **p, char **flag, int imax, int jmax, double *red
 }
 
 __global__ void update_p(double **p, char **flag, double **rhs, int imax, int jmax) {
-    int i, i_end;
+    int i_start, i_end, j_start, j_end;
+    init_outer_loop(i_start, i_end);
+    init_inner_loop(j_start, j_end);            
     for (int rb = 0; rb < 2; rb++) {
-
-        init_outer_loop(i, i_end);
-
-        for (;i >= 1 && i < i_end && i < imax+1; i++) {
-            int j, j_end;
-            init_inner_loop(j, j_end);            
-            for (;j >= 1 && j < j_end && j < jmax+1; j++) {
+        __syncthreads();
+        for (int i = i_start; i < i_end && i < imax+1; i++) {
+            for (int j = j_start; j < j_end && j < jmax+1; j++) {
                 if ((i + j) % 2 != rb) { continue; }
                 if (flag[i][j] == (C_F | B_NSEW)) {
                     /* five point star for interior fluid cells */
@@ -221,13 +195,11 @@ __global__ void update_p(double **p, char **flag, double **rhs, int imax, int jm
 
 __global__ void update_res(double **p, char **flag, double **rhs, int imax, int jmax, double res, double *reduction_buffer) {
     /* computation of residual */
-    int i, i_end;
-    init_outer_loop(i, i_end);
-    for (;i >= 1 && i < i_end && i < imax+1; i++) {
-
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
+    int i_start, i_end, j_start, j_end;
+    init_outer_loop(i_start, i_end);
+    init_inner_loop(j_start, j_end);
+    for (int i = i_start; i < i_end && i < imax+1; i++) {
+        for (int j = j_start; j < j_end && j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
                 double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
                 double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
@@ -271,7 +243,6 @@ double poisson() {
         res = reduce(reduction_buffer);
 
         res = sqrt(res / fluid_cells) / p0;
-        //printf("%lf\n", res);
 
         /* convergence? */
         if (res < eps) break;
@@ -286,24 +257,20 @@ double poisson() {
  * velocity values and the new pressure matrix
  */
 __global__ void update_velocity(double **u, double **v, double **p, char ** flag, double **f, double **g, int imax, int jmax, double del_t, double delx, double dely) {
-    int i, i_end;
-    init_outer_loop(i, i_end);
-    for (;i >= 1 && i < i_end && i < imax-2; i++) {
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax-1; j++) {
+    int i_start, i_end, j_start, j_end;
+    init_outer_loop(i_start, i_end);
+    init_inner_loop(j_start, j_end);
+    for (int i = i_start; i < i_end && i < imax-2; i++) {
+        for (int j = j_start; j < j_end && j < jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i+1][j] & C_F)) {
                 u[i][j] = f[i][j] - (p[i+1][j] - p[i][j]) * del_t / delx;
             }
         }
     }
-    
-    init_outer_loop(i, i_end);
-    for (;i >= 1 && i < i_end && i < imax-1; i++) {
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax-2; j++) {
+
+    for (int i = i_start; i < i_end && i < imax-1; i++) {
+        for (int j = j_start; j < j_end && j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */
             if ((flag[i][j] & C_F) && (flag[i][j+1] & C_F)) {
                 v[i][j] = g[i][j] - (p[i][j+1] - p[i][j]) * del_t / dely;
@@ -350,7 +317,7 @@ void set_timestep_interval() {
 
 
 void main_loop() {
-    double res, t, ten_t, rhs_t, pois_t, vel_t, bound_t;
+    double res, t;
 
     apply_boundary_conditions<<<grid_dim, block_dim>>>(u, v, flag, imax, jmax);
     checkCuda(cudaDeviceSynchronize());
@@ -361,16 +328,16 @@ void main_loop() {
             set_timestep_interval();
         }
 
-        (compute_tentative_velocity<<<grid_dim, block_dim>>>(u, v, flag, f, g, imax, jmax, del_t, Re, delx, dely), ten_t);
+        compute_tentative_velocity<<<grid_dim, block_dim>>>(u, v, flag, f, g, imax, jmax, del_t, Re, delx, dely);
         checkCuda(cudaDeviceSynchronize());
-        (compute_rhs<<<grid_dim, block_dim>>>(flag, f, g, rhs, imax, jmax, del_t, delx, dely), rhs_t);
+        compute_rhs<<<grid_dim, block_dim>>>(flag, f, g, rhs, imax, jmax, del_t, delx, dely);
         checkCuda(cudaDeviceSynchronize());
-        (res = poisson(), pois_t);
+        res = poisson();
 
-        (update_velocity<<<grid_dim, block_dim>>>(u, v, p, flag, f, g, imax, jmax, del_t, delx, dely), vel_t);
+        update_velocity<<<grid_dim, block_dim>>>(u, v, p, flag, f, g, imax, jmax, del_t, delx, dely);
         checkCuda(cudaDeviceSynchronize());
 
-        (apply_boundary_conditions<<<grid_dim, block_dim>>>(u, v, flag, imax, jmax), bound_t);
+        apply_boundary_conditions<<<grid_dim, block_dim>>>(u, v, flag, imax, jmax);
         checkCuda(cudaDeviceSynchronize());
 
         if ((iters % output_freq == 0)) {
@@ -400,9 +367,6 @@ void main_loop() {
  * @return int The return value of the application
  */
 int main(int argc, char *argv[]) {
-    double setup_time;
-
-    setup_time = get_time();
     set_defaults();
     parse_args(argc, argv);
     setup();
@@ -412,8 +376,6 @@ int main(int argc, char *argv[]) {
 
     allocate_arrays();
     problem_set_up();
-    setup_time = get_time() - setup_time;
-    print_timer("Setup", setup_time);
 
     main_loop();
 

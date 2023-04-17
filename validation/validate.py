@@ -89,7 +89,7 @@ def print_stats(name: str, diffs, bench, test) -> None:
     d_rel = sorted(diffs, key=lambda d: d[0][1])
     print(f"{name} diffs: {len(diffs)}\n"
           f"max abs err: {d_abs[-1][0][0]} {d_abs[-1][1]} min abs err: {d_abs[0][0][0]} {d_abs[0][1]}\n"
-          f"max rel err: {d_rel[-1][0][1]}% {d_rel[-1][1]} ({bench[d_rel[-1][1][0]][d_rel[-1][1][1]]} to {test[d_rel[-1][1][0]][d_rel[-1][1][1]]}) min rel err: {d_rel[0][0][1]}% {d_rel[0][1]}\n"
+          f"max rel err: {d_rel[-1][0][1]}% {d_rel[-1][1]}  min rel err: {d_rel[0][0][1]}% {d_rel[0][1]}\n"
           f"mean abs err: {sum(d[0][0] for d in diffs)/len(diffs)} median abs err: {d_abs[len(diffs)//2][0][0]}\n"
           f"mean rel err: {sum(d[0][1] for d in diffs)/len(diffs)}% median rel err: {d_rel[len(diffs)//2][0][1]}%\n")
 
