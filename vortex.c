@@ -19,8 +19,8 @@ double get_time() {
 	return (double) (timer.tv_sec + timer.tv_nsec / 1000000000.0);
 }
 
-#define time(func, timer) if(print_time){timer = get_time();func;timer = get_time() - timer;}else{func;}
-#define print_timer(name, timer) if(print_time)printf("%s: %lf\n", name, timer);
+#define time(func, timer) if(print_time){double tim = get_time();func;tim = get_time() - tim; timer += tim;}else{func;}
+#define print_timer(name, timer) if(print_time)printf("%s: %lfs\n", name, timer);
 /**
  * @brief Computation of tentative velocity field (f, g)
  * 
@@ -279,6 +279,13 @@ void main_loop() {
     } /* End of main loop */
 
     printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
+    print_timer("compute_tentative_velocity", tv_time);
+    print_timer("compute_rhs", rhs_time);
+    print_timer("poisson", p_time);
+    print_timer("update_velocity", v_time);
+    print_timer("apply_boundary_conditions", boundary_time);
+    if(print_time)
+        printf("\n");
     printf("Simulation complete.\n");
 
     if (!no_output)
