@@ -22,6 +22,8 @@ class Data:
         return abs(a - b)
 
     def rel_err(self, a: float, b: float) -> float:
+        if min(a, b) == 0:
+            return 100.0
         return abs((a - b) / min(a, b)) * 100
     
     def u_diffs(self, other: object) -> List[Tuple[Tuple[float, float], Tuple[int, int]]]:
