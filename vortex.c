@@ -54,7 +54,6 @@ void compute_tentative_velocity() {
         }
     }
 
-    init_outer_loop(i_start, i_limit);
     for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
         for (int j = 1; j < jmax; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -92,7 +91,6 @@ void compute_tentative_velocity() {
         }
     }
 
-    init_outer_loop(i_start, i_limit);
     for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
@@ -151,7 +149,6 @@ double poisson() {
 
         for (int rb = 0; rb < 2; rb++) {
             swap_edge_arrays((void **) p, MPI_DOUBLE);
-            init_outer_loop(i_start, i_limit);
             for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
                 for (int j = 1; j < jmax+1; j++) {
                     if ((i + j) % 2 != rb) { continue; }
@@ -182,7 +179,6 @@ double poisson() {
 
         
         /* computation of residual */
-        init_outer_loop(i_start, i_limit);
         for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
             for (int j = 1; j < jmax+1; j++) {
                 if (flag[i][j] & C_F) {
@@ -227,7 +223,6 @@ void update_velocity() {
         }
     }
 
-    init_outer_loop(i_start, i_limit);
     for (int i = i_start; (i < i_limit) && (i < imax-1); i++) {
         for (int j = 1; j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -286,6 +281,17 @@ void set_timestep_interval() {
     }
 }
 
+void print_times(double tv_time, double rhs_time, double p_time, double v_time, double boundary_time) {
+    print_timer("compute_tentative_velocity", tv_time);
+    print_timer("compute_rhs", rhs_time);
+    print_timer("poisson", p_time);
+    print_timer("update_velocity", v_time);
+    print_timer("apply_boundary_conditions", boundary_time);
+    print_timer("io bound", io_bound_time);
+    if(print_time)
+        printf("\n");
+}
+
 
 void main_loop() {
     double res, t, tv_time, rhs_time, p_time, v_time, boundary_time;
@@ -308,14 +314,7 @@ void main_loop() {
 
         if ((iters % output_freq == 0) && (rank == 0)) {
             printf("Step %8d, Time: %14.8e (del_t: %14.8e), Residual: %14.8e\n", iters, t+del_t, del_t, res);
-            print_timer("compute_tentative_velocity", tv_time);
-            print_timer("compute_rhs", rhs_time);
-            print_timer("poisson", p_time);
-            print_timer("update_velocity", v_time);
-            print_timer("apply_boundary_conditions", boundary_time);
-            print_timer("io bound", io_bound_time);
-            if(print_time)
-                printf("\n");
+            print_times(tv_time, rhs_time, p_time, v_time, boundary_time);
 
             if ((!no_output) && (enable_checkpoints)) {
                 sync_all();
@@ -330,6 +329,7 @@ void main_loop() {
     sync_all();
     if (rank == 0) {
         printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
+        print_times(tv_time, rhs_time, p_time, v_time, boundary_time);
         printf("Simulation complete.\n");
 
         if (!no_output)

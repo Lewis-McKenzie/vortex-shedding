@@ -116,7 +116,6 @@ void apply_boundary_conditions() {
             v[0][j] = 2 * vi - v[1][j];
         }        
     }
-    //sync_u_boundary();
 
     swap_edge_arrays((void **) u, MPI_DOUBLE);
     swap_edge_arrays((void **) v, MPI_DOUBLE);
