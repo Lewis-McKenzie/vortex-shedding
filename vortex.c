@@ -27,7 +27,7 @@ double get_time() {
  * 
  */
 void compute_tentative_velocity() {
-    #pragma omp parallel for schedule(static, OUTER)
+    #pragma omp parallel for
     for (int i = 1; i < imax; i++) {
         for (int j = 1; j < jmax+1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -52,7 +52,7 @@ void compute_tentative_velocity() {
         }
     }
 
-    #pragma omp parallel for schedule(static, OUTER)
+    #pragma omp parallel for
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -82,7 +82,7 @@ void compute_tentative_velocity() {
         f[0][j]    = u[0][j];
         f[imax][j] = u[imax][j];
     }
-    #pragma omp parallel for schedule(static, OUTER)
+    #pragma omp parallel for
     for (int i = 1; i < imax+1; i++) {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
@@ -95,7 +95,7 @@ void compute_tentative_velocity() {
  * 
  */
 void compute_rhs() {
-    #pragma omp parallel for schedule(static, OUTER)
+    #pragma omp parallel for
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1;j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
@@ -111,7 +111,7 @@ void compute_rhs() {
 void update_p() {
     for (int rb = 0; rb < 2; rb++) {
 
-        #pragma omp parallel for schedule(static, OUTER)
+        #pragma omp parallel for
         for (int i = 1; i < imax+1; i++) {
             for (int j = 1; j < jmax+1; j++) {
 
@@ -147,7 +147,7 @@ void update_p() {
  * @brief computation of residual
 */
 double compute_res(double res) {
-    #pragma omp parallel for reduction(+:res) schedule(static, OUTER)
+    #pragma omp parallel for reduction(+:res)
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & C_F) {
@@ -181,7 +181,7 @@ double poisson() {
     int iter;
     double res = 0.0;
     /* Calculate sum of squares */
-    #pragma omp parallel for reduction(+:p0) schedule(static, OUTER)
+    #pragma omp parallel for reduction(+:p0)
     for (int i = 1; i < imax+1; i++) {
         for (int j = 1; j < jmax+1; j++) {
             if (flag[i][j] & C_F) { p0 += p[i][j] * p[i][j]; }
@@ -210,7 +210,7 @@ double poisson() {
  * velocity values and the new pressure matrix
  */
 void update_velocity() {
-    #pragma omp parallel for schedule(static, OUTER)
+    #pragma omp parallel for
     for (int i = 1; i < imax-2; i++) {
         for (int j = 1; j < jmax-1; j++) {
             /* only if both adjacent cells are fluid cells */
@@ -220,7 +220,7 @@ void update_velocity() {
         }
     }
     
-    #pragma omp parallel for schedule(static, OUTER)
+    #pragma omp parallel for
     for (int i = 1; i < imax-1; i++) {
         for (int j = 1; j < jmax-2; j++) {
             /* only if both adjacent cells are fluid cells */

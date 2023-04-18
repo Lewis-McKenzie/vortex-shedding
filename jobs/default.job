@@ -1,20 +1,20 @@
 #!/bin/bash
-#SBATCH --job-name=OpenMP-Default-%j                    # Job name
-#SBATCH --ntasks=4            # Run a single task...
-#SBATCH --cpus-per-task=1                      # ...with a single CPU
-#SBATCH --mem=1gb                              # Job memory request
-#SBATCH --time=00:10:00                        # Time limit hrs:min:sec
-#SBATCH --output=viking-logs/OpenMP-Default-%j.log               # Standard output and error log
-#SBATCH --partition=teach                        # Select the GPU nodes...
+#SBATCH --job-name=OpenMP-Default-%j
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=1gb
+#SBATCH --time=00:10:00
+#SBATCH --output=viking-logs/OpenMP-Default-%j.log
+#SBATCH --partition=teach
 
 bench='benchmarks/main/default'
 test='benchmarks/OpenMP/default'
 
 mkdir -p $dir/$test
 
-n=16
+n=6
 export OMP_NUM_THREADS=$n
 
-time ./vortex -d 0.0025 -o $test/vortex 2>&1 | tee $dir/$test/output.log
+time ./vortex -d 0.0025 --p -o $test/vortex 2>&1 | tee $dir/$test/output.log
 
 python3 ./validation/validate.py ./$dir/$bench/vortex.vtk ./$dir/$test/vortex.vtk
