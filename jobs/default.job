@@ -6,7 +6,7 @@
 #SBATCH --partition=teach               # run in the teaching queue
 #SBATCH --cpus-per-task=1
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=8
+#SBATCH --ntasks-per-node=16
 #SBATCH --mem-per-cpu=600mb
 #SBATCH --exclusive
 dir=$(pwd)
