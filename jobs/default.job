@@ -6,7 +6,7 @@
 #SBATCH --time=00:10:00
 #SBATCH --output=viking-logs/CUDA-%j.log
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --distribution block
 
 module load system/CUDA/11.0.2-GCC-9.3.0
