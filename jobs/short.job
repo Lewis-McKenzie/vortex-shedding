@@ -1,17 +1,17 @@
 #!/bin/bash
 #SBATCH --job-name=OpenMP-Default-%j
-#SBATCH --ntasks=128
+#SBATCH --ntasks=64
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=1gb
 #SBATCH --time=00:10:00
 #SBATCH --output=viking-logs/OpenMP-Default-%j.log
 #SBATCH --partition=teach
-#SBATCH --nodes=8
-#SBATCH --ntasks-per-node=16
+#SBATCH --nodes=16
+#SBATCH --ntasks-per-node=4
 
 module load chem/ORCA/4.2.0-OpenMPI-3.1.4
 
-n=16
+n=4
 export OMP_NUM_THREADS=$n
 
 time ./vortex -d 0.0025 -x 256 -y 128 --p
