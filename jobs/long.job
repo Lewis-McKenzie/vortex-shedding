@@ -17,6 +17,6 @@ mkdir -p $dir/$test
 n=6
 export OMP_NUM_THREADS=$n
 
-time ./vortex -d 0.0025 --p -o $test/vortex 2>&1 | tee $dir/$test/output.log
+time ./vortex -d 0.0025 -t 10 --p -o $test/vortex 2>&1 | tee $dir/$test/output.log
 
 python3 ./validation/validate.py ./$dir/$bench/vortex.vtk ./$dir/$test/vortex.vtk
