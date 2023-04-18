@@ -30,8 +30,8 @@ __device__ double beta_2;
 
 int fluid_cells = 0;
 
-int block_dim = 256;
-int grid_dim = 128;
+int block_dim = 64;
+int grid_dim = 64;
 
 double *reduction_buffer;
 
