@@ -95,7 +95,6 @@ void compute_tentative_velocity() {
         g[i][0]    = v[i][0];
         g[i][jmax] = v[i][jmax];
     }
-    swap_edge_arrays((void **)g, MPI_DOUBLE);
     swap_edge_arrays((void **)f, MPI_DOUBLE);
 }
 
@@ -117,7 +116,6 @@ void compute_rhs() {
             }
         }
     }
-    swap_edge_arrays((void **)rhs, MPI_DOUBLE);
 }
 
 
@@ -148,7 +146,6 @@ double poisson() {
     for (iter = 0; iter < itermax; iter++) {
 
         for (int rb = 0; rb < 2; rb++) {
-            swap_edge_arrays((void **) p, MPI_DOUBLE);
             for (int i = i_start; (i < i_limit) && (i < imax+1); i++) {
                 for (int j = 1; j < jmax+1; j++) {
                     if ((i + j) % 2 != rb) { continue; }
@@ -174,8 +171,8 @@ double poisson() {
                     }
                 }
             }
+            swap_edge_arrays((void **) p, MPI_DOUBLE);
         }
-        swap_edge_arrays((void **) p, MPI_DOUBLE);
 
         
         /* computation of residual */
