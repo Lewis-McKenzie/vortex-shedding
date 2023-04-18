@@ -1,13 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=OpenMP-short-%j
-#SBATCH --ntasks=64
+#SBATCH --job-name=OpenMP-Default-%j
+#SBATCH --ntasks=16
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=1gb
 #SBATCH --time=00:10:00
-#SBATCH --output=viking-logs/OpenMP-short-%j.log
+#SBATCH --output=viking-logs/OpenMP-Default-%j.log
 #SBATCH --partition=teach
-#SBATCH --nodes=4
-#SBATCH --ntasks-per-node=16
 
 module load chem/ORCA/4.2.0-OpenMPI-3.1.4
 
