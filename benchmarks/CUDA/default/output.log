@@ -1,22 +1,22 @@
-Step        0, Time: 2.50000000e-03 (del_t: 2.50000000e-03), Residual: 5.20921885e+02
-Step      100, Time: 2.52500000e-01 (del_t: 2.50000000e-03), Residual: 2.34848702e+01
-Step      200, Time: 5.02500000e-01 (del_t: 2.50000000e-03), Residual: 1.34856856e+01
-Step      300, Time: 7.52500000e-01 (del_t: 2.50000000e-03), Residual: 3.31594576e+01
-Step      400, Time: 1.00250000e+00 (del_t: 2.50000000e-03), Residual: 2.22249197e+01
-Step      500, Time: 1.25250000e+00 (del_t: 2.50000000e-03), Residual: 1.54043923e+01
-Step      600, Time: 1.50250000e+00 (del_t: 2.50000000e-03), Residual: 1.29676944e+01
-Step      700, Time: 1.75250000e+00 (del_t: 2.50000000e-03), Residual: 1.27402185e+01
-Step      800, Time: 2.00250000e+00 (del_t: 2.50000000e-03), Residual: 1.18313433e+01
-Step      900, Time: 2.25250000e+00 (del_t: 2.50000000e-03), Residual: 1.09246925e+01
-Step     1000, Time: 2.50250000e+00 (del_t: 2.50000000e-03), Residual: 1.08294000e+01
-Step     1100, Time: 2.75250000e+00 (del_t: 2.50000000e-03), Residual: 1.05917763e+01
-Step     1200, Time: 3.00250000e+00 (del_t: 2.50000000e-03), Residual: 1.04194368e+01
-Step     1300, Time: 3.25250000e+00 (del_t: 2.50000000e-03), Residual: 1.04415593e+01
-Step     1400, Time: 3.50250000e+00 (del_t: 2.50000000e-03), Residual: 1.05162889e+01
-Step     1500, Time: 3.75250000e+00 (del_t: 2.50000000e-03), Residual: 1.07281933e+01
-Step     1600, Time: 4.00250000e+00 (del_t: 2.50000000e-03), Residual: 1.10705465e+01
-Step     1700, Time: 4.25250000e+00 (del_t: 2.50000000e-03), Residual: 1.14816207e+01
-Step     1800, Time: 4.50250000e+00 (del_t: 2.50000000e-03), Residual: 1.19228975e+01
-Step     1900, Time: 4.75250000e+00 (del_t: 2.50000000e-03), Residual: 1.24076469e+01
-Step     2000, Time: 5.00000000e+00, Residual: 1.28543261e+01
+Step        0, Time: 2.50000000e-03 (del_t: 2.50000000e-03), Residual: 5.20730844e+02
+Step      100, Time: 2.52500000e-01 (del_t: 2.50000000e-03), Residual: 2.22208766e+01
+Step      200, Time: 5.02500000e-01 (del_t: 2.50000000e-03), Residual: 1.06236355e+01
+Step      300, Time: 7.52500000e-01 (del_t: 2.50000000e-03), Residual: 2.63502799e+01
+Step      400, Time: 1.00250000e+00 (del_t: 2.50000000e-03), Residual: 1.49162036e+01
+Step      500, Time: 1.25250000e+00 (del_t: 2.50000000e-03), Residual: 4.10845188e+00
+Step      600, Time: 1.50250000e+00 (del_t: 2.50000000e-03), Residual: 4.85094780e+00
+Step      700, Time: 1.75250000e+00 (del_t: 2.50000000e-03), Residual: 4.54389778e+00
+Step      800, Time: 2.00250000e+00 (del_t: 2.50000000e-03), Residual: 3.10881336e+00
+Step      900, Time: 2.25250000e+00 (del_t: 2.50000000e-03), Residual: 2.76254647e+00
+Step     1000, Time: 2.50250000e+00 (del_t: 2.50000000e-03), Residual: 2.79530397e+00
+Step     1100, Time: 2.75250000e+00 (del_t: 2.50000000e-03), Residual: 2.67560008e+00
+Step     1200, Time: 3.00250000e+00 (del_t: 2.50000000e-03), Residual: 2.62234824e+00
+Step     1300, Time: 3.25250000e+00 (del_t: 2.50000000e-03), Residual: 2.63210097e+00
+Step     1400, Time: 3.50250000e+00 (del_t: 2.50000000e-03), Residual: 2.65881649e+00
+Step     1500, Time: 3.75250000e+00 (del_t: 2.50000000e-03), Residual: 2.72747225e+00
+Step     1600, Time: 4.00250000e+00 (del_t: 2.50000000e-03), Residual: 2.84157697e+00
+Step     1700, Time: 4.25250000e+00 (del_t: 2.50000000e-03), Residual: 2.98881493e+00
+Step     1800, Time: 4.50250000e+00 (del_t: 2.50000000e-03), Residual: 3.14566957e+00
+Step     1900, Time: 4.75250000e+00 (del_t: 2.50000000e-03), Residual: 3.30720927e+00
+Step     2000, Time: 5.00000000e+00, Residual: 3.45072137e+00
 Simulation complete.
