@@ -7,11 +7,11 @@
 #SBATCH --output=viking-logs/OpenMP-Default-%j.log
 #SBATCH --partition=teach
 #SBATCH --nodes=4
-#SBATCH --ntasks-per-node=16
+#SBATCH --ntasks-per-node=8
 
 module load chem/ORCA/4.2.0-OpenMPI-3.1.4
 
-n=16
+n=8
 export OMP_NUM_THREADS=$n
 
 time ./vortex -d 0.0025 -x 256 -y 128 --p
