@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=OpenMP-Default-%j
+#SBATCH --job-name=OpenMP-short-%j
 #SBATCH --ntasks=64
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=1gb
 #SBATCH --time=00:10:00
-#SBATCH --output=viking-logs/OpenMP-Default-%j.log
+#SBATCH --output=viking-logs/OpenMP-short-%j.log
 #SBATCH --partition=teach
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=16
