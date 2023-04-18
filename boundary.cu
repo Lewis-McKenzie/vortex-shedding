@@ -29,22 +29,19 @@ __global__ void apply_boundary_conditions(double **u, double **v, char **flag, i
 
     int i_start, i_end, j_start, j_end;
     init_outer_loop(i_start, i_end);
+    init_inner_loop(j_start, j_end);
+    adjust_inner_loop(j_start, j_end);
 
 
     if (i_start == 1) {
-        int j, j_end;
-        init_inner_loop(j, j_end)
-        adjust_inner_loop(j, j_end)
-        for (;j < j_end && j < jmax+2; j++) {
+        for (int j = j_start; j < j_end && j < jmax+2; j++) {
             /* Fluid freely flows in from the west */
             u[0][j] = u[1][j];
             v[0][j] = v[1][j];
         }
-    } else if (i_end == imax+1) {
-        int j, j_end;
-        init_inner_loop(j, j_end)
-        adjust_inner_loop(j, j_end)
-        for (;j < j_end && j < jmax+2; j++) {
+    }
+    if (i_end == imax+1) {
+        for (int j = j_start; j < j_end && j < jmax+2; j++) {
             /* Fluid freely flows out to the east */
             u[imax][j] = u[imax-1][j];
             v[imax+1][j] = v[imax][j];
@@ -52,15 +49,22 @@ __global__ void apply_boundary_conditions(double **u, double **v, char **flag, i
     }
 
     __syncthreads();
-    adjust_outer_loop(i_start, i_end)
-    for (int i = i_start; i < i_end && i < imax+2; i++) {
-        /* The vertical velocity approaches 0 at the north and south
-        * boundaries, but fluid flows freely in the horizontal direction */
-        v[i][jmax] = 0.0;
-        u[i][jmax+1] = u[i][jmax];
+    adjust_outer_loop(i_start, i_end);
+    init_inner_loop(j_start, j_end);
 
-        v[i][0] = 0.0;
-        u[i][0] = u[i][1];
+    /* The vertical velocity approaches 0 at the north and south
+    * boundaries, but fluid flows freely in the horizontal direction */
+    if (j_start == 1) {
+        for (int i = i_start; i < i_end && i < imax+2; i++) {
+            v[i][0] = 0.0;
+            u[i][0] = u[i][1];
+        }
+    }
+    if (j_end == jmax+1) {
+        for (int i = i_start; i < i_end && i < imax+2; i++) {
+            v[i][jmax] = 0.0;
+            u[i][jmax+1] = u[i][jmax];
+        }
     }
 
     /* Apply no-slip boundary conditions to cells that are adjacent to
@@ -68,11 +72,11 @@ __global__ void apply_boundary_conditions(double **u, double **v, char **flag, i
      * tend towards zero in these cells.
      */
 
+    __syncthreads();
     init_outer_loop(i_start, i_end);
+    init_inner_loop(j_start, j_end);
     for (int i = i_start; i < i_end && i < imax+1; i++) {
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
+        for (int j = j_start; j < j_end && j < jmax+1; j++) {
             if (flag[i][j] & B_NSEW) {
                 switch (flag[i][j]) {
                     case B_N: 
@@ -133,9 +137,7 @@ __global__ void apply_boundary_conditions(double **u, double **v, char **flag, i
     }
     __syncthreads();
     if (i_start == 1) {
-        int j, j_end;
-        init_inner_loop(j, j_end);
-        for (;j >= 1 && j < j_end && j < jmax+1; j++) {
+        for (int j = j_start; j < j_end && j < jmax+1; j++) {
             u[0][j] = ui;
             v[0][j] = 2 * vi - v[1][j];
         }

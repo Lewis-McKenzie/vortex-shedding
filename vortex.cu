@@ -32,17 +32,21 @@ __global__ void block_reduce_sum_buffer(double *reduction_buffer) {
     }
 }
 
-__global__ void grid_reduce_sum_buffer(double *reduction_buffer, int grid_dim, int block_dim) {
-    for (int i = block_dim; i < grid_dim*block_dim; i+=block_dim) {
-        reduction_buffer[0] += reduction_buffer[i];
+__global__ void grid_reduce_sum_buffer(double *reduction_buffer, int block_dim) {
+    // index is the start of each block buffer
+    int tid = threadIdx.x * block_dim;
+
+    for (int s=blockDim.x/2; s>0; s>>=1) {
+        if (threadIdx.x < s)
+            reduction_buffer[tid] += reduction_buffer[tid + s*block_dim];
+
+        __syncthreads();
     }
 }
 
 double reduce(double *reduction_buffer) {
-    checkCuda(cudaDeviceSynchronize());
     block_reduce_sum_buffer<<<grid_dim, block_dim>>>(reduction_buffer);
-    checkCuda(cudaDeviceSynchronize());
-    grid_reduce_sum_buffer<<<1, 1>>>(reduction_buffer, grid_dim, block_dim);
+    grid_reduce_sum_buffer<<<1, grid_dim>>>(reduction_buffer, block_dim);
     checkCuda(cudaDeviceSynchronize());
     return reduction_buffer[0];
 }
@@ -104,21 +108,28 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
             }
         }
     }
+    __syncthreads();
 
     /* f & g at external boundaries */
     if (i_start == 1) {
         for (int j = j_start; j < j_end && j < jmax+1; j++) {
             f[0][j]    = u[0][j];
         }
-    } else if (i_end == imax) {
+    } 
+    if (i_end == imax+1) {
         for (int j = j_start; j < j_end && j < jmax+1; j++) {
             f[imax][j] = u[imax][j];
         }
     }
-    //TODO: this needs better parallelisation, may be done twice
-    for (int i = i_start; i < i_end && i < imax+1; i++) {
-        g[i][0]    = v[i][0];
-        g[i][jmax] = v[i][jmax];
+    if (j_start == 1) {
+        for (int i = i_start; i < i_end && i < imax+1; i++) {
+            g[i][0]    = v[i][0];
+        }
+    }
+    if (j_end == jmax+1) {
+        for (int i = i_start; i < i_end && i < imax+1; i++) {
+            g[i][jmax] = v[i][jmax];
+        }
     }
 }
 
@@ -158,35 +169,32 @@ __global__ void init_p0(double **p, char **flag, int imax, int jmax, double *red
     reduction_buffer[blockIdx.x * blockDim.x + threadIdx.x] = p0;
 }
 
-__global__ void update_p(double **p, char **flag, double **rhs, int imax, int jmax) {
+__global__ void update_p(double **p, char **flag, double **rhs, int imax, int jmax, int rb) {
     int i_start, i_end, j_start, j_end;
     init_outer_loop(i_start, i_end);
-    init_inner_loop(j_start, j_end);            
-    for (int rb = 0; rb < 2; rb++) {
-        __syncthreads();
-        for (int i = i_start; i < i_end && i < imax+1; i++) {
-            for (int j = j_start; j < j_end && j < jmax+1; j++) {
-                if ((i + j) % 2 != rb) { continue; }
-                if (flag[i][j] == (C_F | B_NSEW)) {
-                    /* five point star for interior fluid cells */
-                    p[i][j] = (1.0 - omega) * p[i][j] - 
-                            beta_2 * ((p[i+1][j] + p[i-1][j] ) * rdx2
-                                        + (p[i][j+1] + p[i][j-1]) * rdy2
-                                        - rhs[i][j]);
-                } else if (flag[i][j] & C_F) { 
-                    /* modified star near boundary */
+    init_inner_loop(j_start, j_end);
+    for (int i = i_start; i < i_end && i < imax+1; i++) {
+        for (int j = j_start; j < j_end && j < jmax+1; j++) {
+            if ((i + j) % 2 != rb) { continue; }
+            if (flag[i][j] == (C_F | B_NSEW)) {
+                /* five point star for interior fluid cells */
+                p[i][j] = (1.0 - omega) * p[i][j] - 
+                        beta_2 * ((p[i+1][j] + p[i-1][j] ) * rdx2
+                                    + (p[i][j+1] + p[i][j-1]) * rdy2
+                                    - rhs[i][j]);
+            } else if (flag[i][j] & C_F) { 
+                /* modified star near boundary */
 
-                    double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
-                    double eps_N = ((flag[i][j+1] & C_F) ? 1.0 : 0.0);
-                    double eps_S = ((flag[i][j-1] & C_F) ? 1.0 : 0.0);
+                double eps_E = ((flag[i+1][j] & C_F) ? 1.0 : 0.0);
+                double eps_W = ((flag[i-1][j] & C_F) ? 1.0 : 0.0);
+                double eps_N = ((flag[i][j+1] & C_F) ? 1.0 : 0.0);
+                double eps_S = ((flag[i][j-1] & C_F) ? 1.0 : 0.0);
 
-                    double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
-                    p[i][j] = (1.0 - omega) * p[i][j] -
-                        beta_mod * ((eps_E * p[i+1][j] + eps_W * p[i-1][j]) * rdx2
-                                        + (eps_N * p[i][j+1] + eps_S * p[i][j-1]) * rdy2
-                                        - rhs[i][j]);
-                }
+                double beta_mod = -omega / ((eps_E + eps_W) * rdx2 + (eps_N + eps_S) * rdy2);
+                p[i][j] = (1.0 - omega) * p[i][j] -
+                    beta_mod * ((eps_E * p[i+1][j] + eps_W * p[i-1][j]) * rdx2
+                                    + (eps_N * p[i][j+1] + eps_S * p[i][j-1]) * rdy2
+                                    - rhs[i][j]);
             }
         }
     }
@@ -237,7 +245,9 @@ double poisson() {
     double res = 0.0;
     for (iter = 0; iter < itermax; iter++) {
 
-        update_p<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax);
+        for (int rb = 0; rb < 2; rb++) {
+            update_p<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax, rb);
+        }
         checkCuda(cudaDeviceSynchronize());
         update_res<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax, res, reduction_buffer);
         res = reduce(reduction_buffer);
