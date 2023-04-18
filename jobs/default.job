@@ -6,7 +6,7 @@
 #SBATCH --time=00:10:00                        # Time limit hrs:min:sec
 #SBATCH --output=viking-logs/CUDA-%j.log               # Standard output and error log
 #SBATCH --partition=gpu                        # Select the GPU nodes...
-#SBATCH --gres=gpu:1                           # ...and a single GPU
+#SBATCH --gres=gpu:2                           # ...and a single GPU
 
 module load system/CUDA/11.0.2-GCC-9.3.0
  
