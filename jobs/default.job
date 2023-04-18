@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=MPI-Default-%j                    # Job name
 #SBATCH --time=00:10:00                 # Maximum time (HH:MM:SS)
-#SBATCH --ntasks=2
+#SBATCH --ntasks=8
 #SBATCH --output=viking-logs/MPI-Default-%j.log
 #SBATCH --partition=teach               # run in the teaching queue
 #SBATCH --cpus-per-task=1
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks-per-node=8
 #SBATCH --mem-per-cpu=600mb
 #SBATCH --exclusive
 
@@ -16,6 +16,6 @@ n=8
 
 mkdir -p $dir/$test_dir
 
-time mpirun -n $n ./vortex -d 0.0025 -o $test_dir/vortex 2>&1 | tee $dir/$test_dir/output.log
+time mpirun -n $n ./vortex -d 0.0025 --p -o $test_dir/vortex 2>&1 | tee $dir/$test_dir/output.log
 
 python3 ./validation/validate.py $dir/$bench_dir/vortex.vtk $dir/$test_dir/vortex.vtk
