@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=CUDA-%j                    # Job name
-#SBATCH --ntasks=1                             # Run a single task...
-#SBATCH --cpus-per-task=1                      # ...with a single CPU
-#SBATCH --mem=1gb                              # Job memory request
-#SBATCH --time=00:10:00                        # Time limit hrs:min:sec
-#SBATCH --output=viking-logs/CUDA-%j.log               # Standard output and error log
-#SBATCH --partition=gpu                        # Select the GPU nodes...
-#SBATCH --gres=gpu:2                           # ...and a single GPU
+#SBATCH --job-name=CUDA-%j
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=1gb
+#SBATCH --time=00:10:00
+#SBATCH --output=viking-logs/CUDA-%j.log
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
 
 module load system/CUDA/11.0.2-GCC-9.3.0
  
