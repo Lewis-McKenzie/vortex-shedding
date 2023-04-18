@@ -108,7 +108,6 @@ __global__ void compute_tentative_velocity(double** u, double **v, char **flag, 
             }
         }
     }
-    __syncthreads();
 
     /* f & g at external boundaries */
     if (i_start == 1) {
@@ -248,7 +247,6 @@ double poisson() {
         for (int rb = 0; rb < 2; rb++) {
             update_p<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax, rb);
         }
-        checkCuda(cudaDeviceSynchronize());
         update_res<<<grid_dim, block_dim>>>(p, flag, rhs, imax, jmax, res, reduction_buffer);
         res = reduce(reduction_buffer);
 
@@ -330,7 +328,6 @@ void main_loop() {
     double res, t;
 
     apply_boundary_conditions<<<grid_dim, block_dim>>>(u, v, flag, imax, jmax);
-    checkCuda(cudaDeviceSynchronize());
     /* Main loop */
     int iters = 0;
     for (t = 0.0; t < t_end; t += del_t, iters++) {
@@ -339,16 +336,12 @@ void main_loop() {
         }
 
         compute_tentative_velocity<<<grid_dim, block_dim>>>(u, v, flag, f, g, imax, jmax, del_t, Re, delx, dely);
-        checkCuda(cudaDeviceSynchronize());
         compute_rhs<<<grid_dim, block_dim>>>(flag, f, g, rhs, imax, jmax, del_t, delx, dely);
-        checkCuda(cudaDeviceSynchronize());
         res = poisson();
 
         update_velocity<<<grid_dim, block_dim>>>(u, v, p, flag, f, g, imax, jmax, del_t, delx, dely);
-        checkCuda(cudaDeviceSynchronize());
 
         apply_boundary_conditions<<<grid_dim, block_dim>>>(u, v, flag, imax, jmax);
-        checkCuda(cudaDeviceSynchronize());
 
         if ((iters % output_freq == 0)) {
             checkCuda(cudaDeviceSynchronize());
