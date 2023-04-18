@@ -16,7 +16,7 @@ test='benchmarks/OpenMP/default'
 
 mkdir -p $dir/$test
 
-n=32
+n=64
 export OMP_NUM_THREADS=$n
 
 time ./vortex -d 0.0025 --p -o $test/vortex 2>&1 | tee $dir/$test/output.log
