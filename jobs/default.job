@@ -1,9 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=OpenMP-Default-%j
-#SBATCH --ntasks=64
+#SBATCH --ntasks=16
 #SBATCH --cpus-per-task=1
-#SBATCH --nodes=2
-#SBATCH --ntasks-per-node=32
 #SBATCH --mem=1gb
 #SBATCH --time=00:10:00
 #SBATCH --output=viking-logs/OpenMP-Default-%j.log
@@ -16,7 +14,7 @@ test='benchmarks/OpenMP/default'
 
 mkdir -p $dir/$test
 
-n=64
+n=16
 export OMP_NUM_THREADS=$n
 
 time ./vortex -d 0.0025 --p -o $test/vortex 2>&1 | tee $dir/$test/output.log
