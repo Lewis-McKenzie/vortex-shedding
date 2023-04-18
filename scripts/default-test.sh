@@ -9,7 +9,7 @@ test_dir='benchmarks/OpenMP/default'
 
 mkdir -p $dir/$test_dir
 
-n=6
+n=16
 
 export OMP_NUM_THREADS=$n
 
