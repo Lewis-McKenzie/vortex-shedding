@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=CUDA-%j
-#SBATCH --ntasks=1
+#SBATCH --ntasks=4
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=1gb
+#SBATCH --mem=28gb
 #SBATCH --time=00:10:00
 #SBATCH --output=viking-logs/CUDA-%j.log
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 
 module load system/CUDA/11.0.2-GCC-9.3.0
  
