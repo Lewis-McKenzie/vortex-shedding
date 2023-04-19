@@ -352,7 +352,7 @@ void main_loop() {
             }
         }
     } /* End of main loop */
-
+    checkCuda(cudaDeviceSynchronize());
     printf("Step %8d, Time: %14.8e, Residual: %14.8e\n", iters, t, res);
     printf("Simulation complete.\n");
 

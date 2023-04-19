@@ -1,0 +1,19 @@
+#!/bin/bash
+#SBATCH --job-name=CUDA-short-%j
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=1gb
+#SBATCH --time=00:10:00
+#SBATCH --output=viking-logs/CUDA-short-%j.log
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+
+module load system/CUDA/11.0.2-GCC-9.3.0
+ 
+echo `date`: executing gpu_test on host $HOSTNAME with $SLURM_CPUS_ON_NODE cpu cores
+echo
+cudaDevs=$(echo $CUDA_VISIBLE_DEVICES | sed -e 's/,/ /g')
+echo I can see GPU devices $CUDA_VISIBLE_DEVICES
+echo
+
+time ./vortex -d 0.0025 -x 256 -y 128

@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH --job-name=CUDA-long-%j
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=1gb
+#SBATCH --time=00:10:00
+#SBATCH --output=viking-logs/CUDA-long-%j.log
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+
+module load system/CUDA/11.0.2-GCC-9.3.0
+ 
+echo `date`: executing gpu_test on host $HOSTNAME with $SLURM_CPUS_ON_NODE cpu cores
+echo
+cudaDevs=$(echo $CUDA_VISIBLE_DEVICES | sed -e 's/,/ /g')
+echo I can see GPU devices $CUDA_VISIBLE_DEVICES
+echo
+
+bench='benchmarks/main/default'
+test='benchmarks/CUDA/default'
+
+mkdir -p $dir/$test
+
+nvprof ./vortex -d 0.0025 -o $test/vortex 2>&1 | tee $dir/$test/output.log
+
+python3 ./validation/validate.py ./$dir/$bench/vortex.vtk ./$dir/$test/vortex.vtk
