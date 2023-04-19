@@ -12,10 +12,10 @@ OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 all: directories vortex
 
 obj/%.o: %.c
-	$(CC) -c -o $@ $< $(CFLAGS) 
+	scorep $(CC) -c -o $@ $< $(CFLAGS) 
 
 vortex: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBFLAGS) 
+	scorep $(CC) -o $@ $^ $(CFLAGS) $(LIBFLAGS) 
 
 clean:
 	rm -Rf $(OBJDIR)
